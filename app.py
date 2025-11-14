@@ -84,7 +84,7 @@ def login_user(email, password):
         st.error(f"Login fehlgeschlagen: {str(e)}")
         return False
 
-def register_user(email, password, display_name, family_name):
+def register_user(email, password, display_name):
     try:
         # 1. User registrieren
         response = supabase.auth.sign_up({
@@ -96,34 +96,6 @@ def register_user(email, password, display_name, family_name):
                 }
             }
         })
-        
-        if response.user:
-            user_id = response.user.id
-            
-            # 2. Neue Familie erstellen (nur wenn keine existiert)
-            try:
-                family = supabase.table('families').insert({
-                    "name": family_name
-                }).execute()
-                
-                family_id = family.data[0]['id']
-                
-                # 3. User zur Familie hinzufügen
-                supabase.table('family_members').insert({
-                    "family_id": family_id,
-                    "user_id": user_id,
-                    "role": "Admin",
-                    "display_name": display_name
-                }).execute()
-                
-                st.success("✅ Registrierung erfolgreich!")
-                st.info("Sie können sich jetzt anmelden.")
-                return True
-                
-            except Exception as e:
-                st.warning(f"Familie konnte nicht erstellt werden: {str(e)}")
-                st.info("Bitte kontaktieren Sie Ihren Administrator, um einer Familie hinzugefügt zu werden.")
-                return True
         
         return False
         
