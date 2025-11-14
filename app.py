@@ -231,7 +231,7 @@ def kanban_board():
                     <div style="background-color: {COLORS.get(task['category'], '#CCCCCC')}20; 
                                 padding: 15px; 
                                 border-radius: 10px; 
-                                border-left: 5px solid {COLORS.get(task['category'], '#CCCCCC')};
+                                border-left: 5px solid {COLORS.get(task['category'], "#000000")};
                                 margin-bottom: 10px;">
                         <h4 style="margin: 0;">{task['title']}</h4>
                         <p style="margin: 5px 0; font-size: 0.9em;">{task.get('description', '')}</p>
