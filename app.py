@@ -85,7 +85,7 @@ def login_user(email, password):
         return False
 
 def register_user(email, password, display_name):
-    # <<< feste Family-ID (aus der Tabelle "families") >>>
+    # feste Familie (bestehend!)
     FIXED_FAMILY_ID = "54af62fb-2d16-4e3d-9c6d-d60cebde0151"
 
     try:
@@ -94,32 +94,24 @@ def register_user(email, password, display_name):
             "email": email,
             "password": password,
             "options": {
-                "data": {
-                    "display_name": display_name
-                }
+                "data": { "display_name": display_name }
             }
         })
 
         if response.user:
             user_id = response.user.id
 
-            # 2. User direkt der festen Familie hinzufügen
-            try:
-                supabase.table('family_members').insert({
-                    "family_id": FIXED_FAMILY_ID,
-                    "user_id": user_id,
-                    "role": "Admin",
-                    "display_name": display_name
-                }).execute()
+            # 2. User zur festen Familie hinzufügen
+            supabase.table('family_members').insert({
+                "family_id": FIXED_FAMILY_ID,
+                "user_id": user_id,
+                "role": "Member",
+                "display_name": display_name
+            }).execute()
 
-                st.success("✅ Registrierung erfolgreich!")
-                st.info("Sie können sich jetzt anmelden.")
-                return True
-
-            except Exception as e:
-                st.warning(f"Benutzer konnte nicht der Familie hinzugefügt werden: {str(e)}")
-                st.info("Bitte kontaktieren Sie Ihren Administrator.")
-                return True
+            st.success("✅ Registrierung erfolgreich!")
+            st.info("Sie können sich jetzt anmelden.")
+            return True
 
         return False
 
