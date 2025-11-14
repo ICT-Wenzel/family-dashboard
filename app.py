@@ -161,7 +161,6 @@ def login_page():
         with col2:
             reg_email = st.text_input("E-Mail", key="reg_email")
             reg_display_name = st.text_input("Dein Name", key="reg_name")
-            reg_family_name = st.text_input("Familienname", value="Meine Familie", key="reg_family")
             reg_password = st.text_input("Passwort", type="password", key="reg_password")
             reg_password2 = st.text_input("Passwort wiederholen", type="password", key="reg_password2")
             
@@ -175,7 +174,7 @@ def login_page():
                 elif not reg_email or not reg_display_name:
                     st.error("❌ Bitte alle Felder ausfüllen")
                 else:
-                    if register_user(reg_email, reg_password, reg_display_name, reg_family_name):
+                    if register_user(reg_email, reg_password, reg_display_name):
                         st.balloons()
 
 # Kanban Board mit Supabase
