@@ -84,16 +84,80 @@ def login_user(email, password):
         st.error(f"Login fehlgeschlagen: {str(e)}")
         return False
 
-def register_user(email, password, display_name):
+def register_user(email, password, display_name, family_name):
     try:
+        # 1. User registrieren
         response = supabase.auth.sign_up({
             "email": email,
-            "password": password
+            "password": password,
+            "options": {
+                "data": {
+                    "display_name": display_name
+                }
+            }
         })
-        st.success("✅ Registrierung erfolgreich! Bitte E-Mail bestätigen.")
-        return True
+        
+        if response.user:
+            user_id = response.user.id
+            
+            # 2. Neue Familie erstellen (nur wenn keine existiert)
+            try:
+                family = supabase.table('families').insert({
+                    "name": family_name
+                }).execute()
+                
+                family_id = family.data[0]['id']
+                
+                # 3. User zur Familie hinzufügen
+                supabase.table('family_members').insert({
+                    "family_id": family_id,
+                    "user_id": user_id,
+                    "role": "Admin",
+                    "display_name": display_name
+                }).execute()
+                
+                st.success("✅ Registrierung erfolgreich!")
+                st.info("Sie können sich jetzt anmelden.")
+                return True
+                
+            except Exception as e:
+                st.warning(f"Familie konnte nicht erstellt werden: {str(e)}")
+                st.info("Bitte kontaktieren Sie Ihren Administrator, um einer Familie hinzugefügt zu werden.")
+                return True
+        
+        return False
+        
     except Exception as e:
-        st.error(f"Registrierung fehlgeschlagen: {str(e)}")
+        error_msg = str(e)
+        
+        # Spezifische Fehlermeldungen
+        if "User already registered" in error_msg:
+            st.error("❌ Diese E-Mail ist bereits registriert!")
+        elif "Email confirmations" in error_msg or "confirmation" in error_msg.lower():
+            st.warning("⚠️ E-Mail-Bestätigung erforderlich!")
+            st.info("""
+            Bitte prüfen Sie Ihr E-Mail-Postfach und bestätigen Sie Ihre Registrierung.
+            
+            **Tipp für Entwickler:** 
+            Sie können die E-Mail-Bestätigung in Supabase deaktivieren:
+            Authentication → Settings → "Enable email confirmations" auf OFF setzen
+            """)
+        elif "Database error" in error_msg:
+            st.error("❌ Datenbank-Fehler bei der Registrierung")
+            st.info("""
+            **Mögliche Ursachen:**
+            1. E-Mail Provider nicht aktiviert (Authentication → Providers → Email)
+            2. Tabellen fehlen (führen Sie das SQL-Setup-Script aus)
+            3. Row Level Security zu streng konfiguriert
+            
+            **Quick Fix:** Erstellen Sie einen Test-User manuell:
+            - Gehe zu Authentication → Users
+            - Klicke "Add user" → "Create new user"
+            - Auto Confirm User: AN
+            """)
+        else:
+            st.error(f"Registrierung fehlgeschlagen: {error_msg}")
+        
         return False
 
 def logout_user():
@@ -129,18 +193,23 @@ def login_page():
         
         with col2:
             reg_email = st.text_input("E-Mail", key="reg_email")
-            reg_display_name = st.text_input("Anzeigename", key="reg_name")
+            reg_display_name = st.text_input("Dein Name", key="reg_name")
+            reg_family_name = st.text_input("Familienname", value="Meine Familie", key="reg_family")
             reg_password = st.text_input("Passwort", type="password", key="reg_password")
             reg_password2 = st.text_input("Passwort wiederholen", type="password", key="reg_password2")
             
+            st.caption("💡 Der erste registrierte User wird automatisch Admin der Familie")
+            
             if st.button("Registrieren", use_container_width=True):
                 if reg_password != reg_password2:
-                    st.error("Passwörter stimmen nicht überein")
+                    st.error("❌ Passwörter stimmen nicht überein")
                 elif len(reg_password) < 6:
-                    st.error("Passwort muss mindestens 6 Zeichen lang sein")
+                    st.error("❌ Passwort muss mindestens 6 Zeichen lang sein")
+                elif not reg_email or not reg_display_name:
+                    st.error("❌ Bitte alle Felder ausfüllen")
                 else:
-                    if register_user(reg_email, reg_password, reg_display_name):
-                        st.info("👉 Nach Bestätigung der E-Mail können Sie sich anmelden.")
+                    if register_user(reg_email, reg_password, reg_display_name, reg_family_name):
+                        st.balloons()
 
 # Kanban Board mit Supabase
 def kanban_board():
