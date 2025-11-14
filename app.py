@@ -85,6 +85,9 @@ def login_user(email, password):
         return False
 
 def register_user(email, password, display_name):
+    # <<< feste Family-ID (aus der Tabelle "families") >>>
+    FIXED_FAMILY_ID = "54af62fb-2d16-4e3d-9c6d-d60cebde0151"
+
     try:
         # 1. User registrieren
         response = supabase.auth.sign_up({
@@ -96,40 +99,32 @@ def register_user(email, password, display_name):
                 }
             }
         })
-        
+
+        if response.user:
+            user_id = response.user.id
+
+            # 2. User direkt der festen Familie hinzufügen
+            try:
+                supabase.table('family_members').insert({
+                    "family_id": FIXED_FAMILY_ID,
+                    "user_id": user_id,
+                    "role": "Admin",
+                    "display_name": display_name
+                }).execute()
+
+                st.success("✅ Registrierung erfolgreich!")
+                st.info("Sie können sich jetzt anmelden.")
+                return True
+
+            except Exception as e:
+                st.warning(f"Benutzer konnte nicht der Familie hinzugefügt werden: {str(e)}")
+                st.info("Bitte kontaktieren Sie Ihren Administrator.")
+                return True
+
         return False
-        
+
     except Exception as e:
-        error_msg = str(e)
-        
-        # Spezifische Fehlermeldungen
-        if "User already registered" in error_msg:
-            st.error("❌ Diese E-Mail ist bereits registriert!")
-        elif "Email confirmations" in error_msg or "confirmation" in error_msg.lower():
-            st.warning("⚠️ E-Mail-Bestätigung erforderlich!")
-            st.info("""
-            Bitte prüfen Sie Ihr E-Mail-Postfach und bestätigen Sie Ihre Registrierung.
-            
-            **Tipp für Entwickler:** 
-            Sie können die E-Mail-Bestätigung in Supabase deaktivieren:
-            Authentication → Settings → "Enable email confirmations" auf OFF setzen
-            """)
-        elif "Database error" in error_msg:
-            st.error("❌ Datenbank-Fehler bei der Registrierung")
-            st.info("""
-            **Mögliche Ursachen:**
-            1. E-Mail Provider nicht aktiviert (Authentication → Providers → Email)
-            2. Tabellen fehlen (führen Sie das SQL-Setup-Script aus)
-            3. Row Level Security zu streng konfiguriert
-            
-            **Quick Fix:** Erstellen Sie einen Test-User manuell:
-            - Gehe zu Authentication → Users
-            - Klicke "Add user" → "Create new user"
-            - Auto Confirm User: AN
-            """)
-        else:
-            st.error(f"Registrierung fehlgeschlagen: {error_msg}")
-        
+        st.error(f"Registrierung fehlgeschlagen: {str(e)}")
         return False
 
 def logout_user():
