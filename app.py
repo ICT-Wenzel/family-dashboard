@@ -231,7 +231,7 @@ def kanban_board():
                     <div style="background-color: {COLORS.get(task['category'], '#CCCCCC')}20; 
                                 padding: 15px; 
                                 border-radius: 10px; 
-                                border-left: 5px solid {COLORS.get(task['category'], "#000000")};
+                                border-left: 5px solid {COLORS.get(task['category'], "#CCCCCC")};
                                 margin-bottom: 10px;">
                         <h4 style="margin: 0;">{task['title']}</h4>
                         <p style="margin: 5px 0; font-size: 0.9em;">{task.get('description', '')}</p>
@@ -411,16 +411,17 @@ def vacation_planning():
             col1, col2 = st.columns([5, 1])
             with col1:
                 st.markdown(f"""
-                <div style="background-color: #E3F2FD; 
-                            padding: 15px; 
-                            border-radius: 10px; 
-                            border-left: 5px solid #2196F3;
-                            margin-bottom: 10px;">
-                    <h4 style="margin: 0;">{vacation['title']}</h4>
-                    <p style="margin: 5px 0;">📅 {vacation['start_date']} bis {vacation['end_date']}</p>
-                    <small>👤 {vacation.get('person', 'N/A')} | 🏷️ {vacation['type']}</small><br>
-                    <small>{vacation.get('notes', '')}</small>
-                </div>
+                    <div style="background-color: #E3F2FD; 
+                                padding: 15px; 
+                                border-radius: 10px; 
+                                border-left: 5px solid #2196F3;
+                                margin-bottom: 10px;
+                                color: black;">
+                        <h4 style="margin: 0; color: black;">{vacation['title']}</h4>
+                        <p style="margin: 5px 0; color: black;">📅 {vacation['start_date']} bis {vacation['end_date']}</p>
+                        <small style="color: black;">👤 {vacation.get('person', 'N/A')} | 🏷️ {vacation['type']}</small><br>
+                        <small style="color: black;">{vacation.get('notes', '')}</small>
+                    </div>
                 """, unsafe_allow_html=True)
             with col2:
                 if st.button("🗑️", key=f"del_vac_{vacation['id']}"):
