@@ -490,16 +490,7 @@ def vacation_planning():
     
     # Timeline-Ansicht
     if vacations:
-        st.markdown("""
-        <h2 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    font-weight: 800;
-                    font-size: 1.6em;
-                    margin-bottom: 25px;">
-            📅 Timeline
-        </h2>
-        """, unsafe_allow_html=True)
+        st.title("🗓️ Ferienzeiten Übersicht")
         
         # Filtere Vacations
         filtered_vacations = [
