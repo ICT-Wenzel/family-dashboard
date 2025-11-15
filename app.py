@@ -2,6 +2,8 @@ import streamlit as st
 from datetime import datetime, timedelta
 import os
 from supabase import create_client, Client
+import requests
+import json
 
 # Konfiguration
 st.set_page_config(
@@ -46,6 +48,25 @@ def init_supabase():
 
 supabase: Client = init_supabase()
 
+# n8n Webhook Konfiguration (optional - nur für Kalender-Integration)
+def get_n8n_config():
+    """Lädt n8n Webhook URLs aus Secrets oder Environment"""
+    try:
+        base_url = st.secrets.get("N8N_WEBHOOK_URL") or os.environ.get("N8N_WEBHOOK_URL")
+        if base_url:
+            return {
+                "enabled": True,
+                "create_event": f"{base_url}/create-calendar-event",
+                "get_events": f"{base_url}/get-calendar-events",
+                "delete_event": f"{base_url}/delete-calendar-event",
+                "sync_calendar": f"{base_url}/sync-google-calendar"
+            }
+    except:
+        pass
+    return {"enabled": False}
+
+N8N_CONFIG = get_n8n_config()
+
 # Session State initialisieren
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
@@ -62,6 +83,24 @@ COLORS = {
     "Freizeit": "#FFA07A",
     "Gesundheit": "#98D8C8"
 }
+
+# n8n Webhook Helper
+def call_n8n_webhook(endpoint: str, method: str = "POST", data: dict = None, params: dict = None):
+    """Hilfsfunktion für n8n Webhook-Aufrufe"""
+    if not N8N_CONFIG["enabled"]:
+        return None
+    
+    try:
+        if method == "GET":
+            response = requests.get(endpoint, params=params, timeout=10)
+        else:
+            response = requests.post(endpoint, json=data, timeout=10)
+        
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.warning(f"n8n nicht erreichbar: {str(e)}")
+        return None
 
 # Authentifizierungs-Funktionen
 def login_user(email, password):
@@ -428,7 +467,6 @@ def vacation_planning():
                     supabase.table('vacations').delete().eq('id', vacation['id']).execute()
                     st.rerun()
 
-# Wochenplan mit Supabase
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
@@ -437,7 +475,7 @@ def weekly_schedule():
         return
     
     # Neuen Termin hinzufügen
-    with st.expander("➕ Neuen Termin erstellen"):
+    with st.expander("➕ Neuen Termin erstellen", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             event_title = st.text_input("Titel")
@@ -450,7 +488,7 @@ def weekly_schedule():
         
         description = st.text_area("Beschreibung")
         
-        if st.button("Termin erstellen") and event_title:
+        if st.button("Termin erstellen", use_container_width=True) and event_title:
             try:
                 supabase.table('schedule_events').insert({
                     "family_id": st.session_state.family_id,
@@ -471,53 +509,224 @@ def weekly_schedule():
     st.divider()
     
     # Termine laden
+    today = datetime.now().date()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    
     try:
-        today = datetime.now().date()
-        week_start = today - timedelta(days=today.weekday())
-        week_end = week_start + timedelta(days=6)
-        
-        response = supabase.table('schedule_events').select('*').eq('family_id', st.session_state.family_id).gte('event_date', str(week_start)).lte('event_date', str(week_end)).order('event_date', desc=False).execute()
+        response = supabase.table('schedule_events').select('*').eq(
+            'family_id', st.session_state.family_id
+        ).gte('event_date', str(week_start)).lte('event_date', str(week_end)).order('event_date', desc=False).execute()
         events = response.data
     except Exception as e:
-        st.error(f"Fehler: {str(e)}")
+        st.error(f"Fehler beim Laden: {str(e)}")
         return
     
-    # Filter
-    all_persons = list(set([e['person'] for e in events if e['person']]))
-    filter_person = st.multiselect("Nach Person filtern", all_persons, default=all_persons, key="schedule_filter")
+    # Wochennavigation
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col1:
+        if st.button("◀ Vorherige Woche", use_container_width=True):
+            st.session_state.week_offset = st.session_state.get('week_offset', 0) - 1
+            st.rerun()
+    with col2:
+        week_offset = st.session_state.get('week_offset', 0)
+        current_week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+        current_week_end = current_week_start + timedelta(days=6)
+        st.markdown(f"<h3 style='text-align: center;'>📅 {current_week_start.strftime('%d.%m.%Y')} - {current_week_end.strftime('%d.%m.%Y')}</h3>", unsafe_allow_html=True)
+    with col3:
+        if st.button("Nächste Woche ▶", use_container_width=True):
+            st.session_state.week_offset = st.session_state.get('week_offset', 0) + 1
+            st.rerun()
     
-    # Wochenansicht
-    for i in range(7):
+    # Heute-Button
+    if st.session_state.get('week_offset', 0) != 0:
+        if st.button("🔵 Zurück zu heute", use_container_width=True):
+            st.session_state.week_offset = 0
+            st.rerun()
+    
+    # Filter
+    all_persons = list(set([e.get('person', '') for e in events if e.get('person')]))
+    if all_persons:
+        filter_person = st.multiselect("👤 Nach Person filtern", all_persons, default=all_persons, key="schedule_filter")
+    else:
+        filter_person = []
+    
+    st.divider()
+    
+    # Kalender-Grid-Ansicht (wie Google Calendar)
+    st.markdown("""
+    <style>
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 2px;
+        background-color: #e0e0e0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .calendar-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 10px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+    .time-label {
+        background-color: #f5f5f5;
+        padding: 10px 5px;
+        text-align: right;
+        font-size: 0.75em;
+        color: #666;
+        border-right: 2px solid #ddd;
+    }
+    .calendar-cell {
+        background-color: white;
+        min-height: 60px;
+        padding: 4px;
+        position: relative;
+    }
+    .calendar-cell.today {
+        background-color: #e3f2fd;
+    }
+    .event-block {
+        padding: 6px 8px;
+        border-radius: 6px;
+        margin-bottom: 4px;
+        font-size: 0.85em;
+        cursor: pointer;
+        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .event-block:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .event-time {
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+    .event-title {
+        font-weight: 600;
+        margin-top: 2px;
+    }
+    .event-person {
+        font-size: 0.8em;
+        opacity: 0.9;
+        margin-top: 2px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Zeitraster (6 Uhr bis 22 Uhr)
+    time_slots = [f"{h:02d}:00" for h in range(6, 23)]
+    
+    # Header mit Wochentagen
+    days_of_week = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    week_offset = st.session_state.get('week_offset', 0)
+    week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+    
+    # Kalender-Grid HTML generieren
+    calendar_html = '<div class="calendar-grid">'
+    
+    # Header-Zeile
+    calendar_html += '<div class="calendar-header" style="grid-column: 1;">Zeit</div>'
+    for i, day_name in enumerate(days_of_week):
         day = week_start + timedelta(days=i)
-        day_name = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"][i]
+        is_today_class = "today" if day == today else ""
+        today_marker = "🔵 " if day == today else ""
+        calendar_html += f'<div class="calendar-header {is_today_class}">{today_marker}{day_name}<br>{day.strftime("%d.%m")}</div>'
+    
+    # Zeitslots und Events
+    for time_slot in time_slots:
+        # Zeit-Label
+        calendar_html += f'<div class="time-label">{time_slot}</div>'
         
-        st.subheader(f"{day_name}, {day.strftime('%d.%m.%Y')}")
-        
-        day_events = [e for e in events if e['event_date'] == str(day) and (not filter_person or e['person'] in filter_person)]
-        
-        if day_events:
-            for event in sorted(day_events, key=lambda x: x['start_time']):
-                col1, col2 = st.columns([5, 1])
-                with col1:
-                    st.markdown(f"""
-                    <div style="background-color: {COLORS.get(event['category'], '#CCCCCC')}20; 
-                                padding: 10px; 
-                                border-radius: 8px; 
-                                border-left: 4px solid {COLORS.get(event['category'], '#CCCCCC')};
-                                margin-bottom: 8px;">
-                        <strong>{event['start_time'][:5]} - {event['end_time'][:5]}</strong> | {event['title']}<br>
-                        <small>👤 {event.get('person', 'N/A')} | 📌 {event['category']}</small><br>
-                        <small>{event.get('description', '')}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    if st.button("🗑️", key=f"del_event_{event['id']}"):
-                        supabase.table('schedule_events').delete().eq('id', event['id']).execute()
-                        st.rerun()
-        else:
-            st.info("Keine Termine")
-        
-        st.divider()
+        # Für jeden Tag der Woche
+        for i in range(7):
+            day = week_start + timedelta(days=i)
+            is_today_class = "today" if day == today else ""
+            
+            # Events für diesen Tag und diese Stunde finden
+            day_events = [
+                e for e in events 
+                if e.get('event_date') == str(day) 
+                and (not filter_person or e.get('person') in filter_person)
+                and e.get('start_time', '')[:2] == time_slot[:2]
+            ]
+            
+            cell_content = ""
+            for event in day_events:
+                color = COLORS.get(event.get('category'), '#CCCCCC')
+                cell_content += f'''
+                <div class="event-block" style="background-color: {color}30; border-left: 4px solid {color};" 
+                     title="{event.get('description', '')}">
+                    <div class="event-time">{event.get('start_time', '')[:5]} - {event.get('end_time', '')[:5]}</div>
+                    <div class="event-title">{event.get('title', 'N/A')}</div>
+                    <div class="event-person">👤 {event.get('person', 'N/A')}</div>
+                </div>
+                '''
+            
+            calendar_html += f'<div class="calendar-cell {is_today_class}">{cell_content}</div>'
+    
+    calendar_html += '</div>'
+    
+    # Kalender anzeigen
+    st.markdown(calendar_html, unsafe_allow_html=True)
+    
+    st.divider()
+    
+    # Detail-Liste der Termine (zum Bearbeiten/Löschen)
+    st.subheader("📋 Alle Termine dieser Woche")
+    
+    week_events = [
+        e for e in events
+        if str(week_start) <= e.get('event_date', '') <= str(week_start + timedelta(days=6))
+        and (not filter_person or e.get('person') in filter_person)
+    ]
+    
+    if week_events:
+        for event in sorted(week_events, key=lambda x: (x.get('event_date', ''), x.get('start_time', ''))):
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                event_date = datetime.strptime(event['event_date'], '%Y-%m-%d').date()
+                day_name = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][event_date.weekday()]
+                
+                st.markdown(f"""
+                <div style="background-color: {COLORS.get(event.get('category'), '#CCCCCC')}20; 
+                            padding: 12px; 
+                            border-radius: 8px; 
+                            border-left: 5px solid {COLORS.get(event.get('category'), '#CCCCCC')};
+                            margin-bottom: 8px;">
+                    <strong>📅 {day_name}, {event_date.strftime('%d.%m.%Y')}</strong> | 
+                    <strong>{event.get('start_time', '')[:5]} - {event.get('end_time', '')[:5]}</strong><br>
+                    <strong style="font-size: 1.1em;">{event.get('title', 'N/A')}</strong><br>
+                    <small>👤 {event.get('person', 'N/A')} | 📌 {event.get('category', 'N/A')}</small><br>
+                    <small>{event.get('description', '')}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                if st.button("🗑️", key=f"del_event_{event['id']}"):
+                    supabase.table('schedule_events').delete().eq('id', event['id']).execute()
+                    st.rerun()
+    else:
+        st.info("📭 Keine Termine in dieser Woche")
+    
+    # Legende
+    with st.expander("ℹ️ Kategorien"):
+        cols = st.columns(len(COLORS))
+        for i, (category, color) in enumerate(COLORS.items()):
+            with cols[i]:
+                st.markdown(f"""
+                <div style="background-color: {color}30; 
+                            padding: 8px; 
+                            border-radius: 6px; 
+                            border-left: 4px solid {color};
+                            text-align: center;">
+                    <strong>{category}</strong>
+                </div>
+                """, unsafe_allow_html=True)
 
 # Hauptanwendung
 def main():
