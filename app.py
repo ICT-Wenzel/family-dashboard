@@ -296,11 +296,8 @@ def kanban_board():
                             supabase.table('tasks').update({"status": statuses[idx + 1]}).eq('id', task['id']).execute()
                             st.rerun()
 
-# HINWEIS: Hier wird davon ausgegangen, dass 'supabase' und 'st.session_state.family_id' 
-# sowie 'st.session_state.user.id' bereits im Hauptskript definiert sind.
-
 import streamlit as st
-import pandas as pd # Wird nur für die interne Darstellung verwendet
+# from supabase import create_client, Client # (Falls Sie dies im Hauptskript benötigen)
 
 # --- CSS STYLES FÜR DEN GLOSSY-LOOK ---
 def inject_glossy_shopping_css():
@@ -368,9 +365,9 @@ def inject_glossy_shopping_css():
             background: rgba(255, 255, 255, 0.1);
         }
 
-        /* Checkbox-Farbe verbessern (abhängig vom Streamlit-Theme) */
+        /* Checkbox-Farbe verbessern */
         .stCheckbox > label {
-            color: #f3f4f6 !important; /* Weißer Text */
+            color: #f3f4f6 !important; 
             font-weight: 500;
         }
         .stCheckbox [data-testid="stDecoration"] {
@@ -379,7 +376,7 @@ def inject_glossy_shopping_css():
             background: rgba(255, 255, 255, 0.1) !important;
         }
         .st-ag { /* Checkbox im Checked-Zustand */
-             background-color: #3CB371 !important; /* MediumSeaGreen */
+             background-color: #3CB371 !important; 
              border-color: #3CB371 !important; 
         }
 
@@ -388,7 +385,7 @@ def inject_glossy_shopping_css():
             background: rgba(255, 0, 0, 0.15) !important;
             border: 1px solid rgba(255, 0, 0, 0.5) !important;
             box-shadow: none !important;
-            color: #FF6347 !important; /* Tomato */
+            color: #FF6347 !important; 
             padding: 5px 10px;
         }
         .trash-button button:hover {
@@ -406,6 +403,18 @@ def shopping_list():
     
     st.title("🛒 Einkaufsliste")
     
+    # ----------------------------------------------------
+    # KORREKTUR: Robuste Ermittlung der User ID
+    # ----------------------------------------------------
+    if 'user' in st.session_state and isinstance(st.session_state.user, dict):
+        user_id = st.session_state.user.get('id', 'unknown_user')
+    # Für den Fall, dass user ein Objekt mit .id ist, was der ursprünglichen Annahme entsprach (Fallback, aber der Fehler deutet auf 'dict' hin)
+    elif 'user' in st.session_state and hasattr(st.session_state.user, 'id'):
+         user_id = st.session_state.user.id
+    else:
+        user_id = 'unknown_user'
+
+
     # Prüfen, ob der Client und Family ID verfügbar sind
     if 'supabase' not in globals():
         st.error("❌ Kritischer Fehler: Supabase-Client ('supabase') ist nicht global verfügbar.")
@@ -413,10 +422,11 @@ def shopping_list():
     if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet. Bitte melden Sie sich an.")
         return
+    if user_id == 'unknown_user':
+        st.warning("⚠️ Benutzer-ID konnte nicht ermittelt werden. Listen werden unter 'unknown_user' erstellt.")
     
     # --- 1. Listen laden ---
     try:
-        # Führt die Select-Anweisung aus
         lists_response = globals()['supabase'].table('shopping_lists').select('*').eq('family_id', st.session_state.family_id).order('name').execute()
         lists = lists_response.data
     except Exception as e:
@@ -431,14 +441,12 @@ def shopping_list():
         with col_input:
              new_list_name = st.text_input("Name der neuen Liste", key="new_list_name_input", label_visibility="collapsed", placeholder="z.B. Wocheneinkauf, Drogerie")
         with col_btn:
-             # st.session_state.user.id wird für 'created_by' benötigt
-             user_id = st.session_state.user.id if st.session_state.get('user') and st.session_state.user.get('id') else 'unknown_user'
-
              if st.button("Liste erstellen", use_container_width=True) and new_list_name:
                 try:
                     globals()['supabase'].table('shopping_lists').insert({
                         "family_id": st.session_state.family_id,
-                        "created_by": user_id,
+                        # KORRIGIERTE ZEILE: Verwendet die oben ermittelte user_id
+                        "created_by": user_id, 
                         "name": new_list_name
                     }).execute()
                     st.success(f"✅ Liste '{new_list_name}' erstellt! Lade neu...")
@@ -516,7 +524,6 @@ def shopping_list():
 
         # Layout der Liste
         for item in sorted_items:
-            # st.columns in einem Markdown-Container für den Glossy-Effekt
             st.markdown('<div class="item-row">', unsafe_allow_html=True)
             col1, col2 = st.columns([5, 1])
             
@@ -532,7 +539,6 @@ def shopping_list():
                 if checked != item['is_checked']:
                     try:
                         globals()['supabase'].table('shopping_items').update({"is_checked": checked}).eq('id', item['id']).execute()
-                        # st.rerun() wird nach der Änderung ausgelöst, um die Liste zu aktualisieren
                         st.rerun()
                     except Exception as e:
                         st.error(f"Fehler beim Aktualisieren: {str(e)}")
@@ -557,13 +563,11 @@ def shopping_list():
         st.markdown("---")
         if st.button(f"🧹 **Alle {len(checked_items)} erledigten Artikel löschen**", type="secondary", use_container_width=True):
             try:
-                # Löscht alle Items mit is_checked=True für die aktuelle Liste
                 globals()['supabase'].table('shopping_items').delete().eq('list_id', selected_list_id).eq('is_checked', True).execute()
                 st.success("✅ Erledigte Artikel bereinigt!")
                 st.rerun()
             except Exception as e:
                 st.error(f"Fehler beim Bereinigen: {str(e)}")
-
 
  # Ferienplanung mit Premium UI
 def vacation_planning():
