@@ -296,212 +296,59 @@ def kanban_board():
                             supabase.table('tasks').update({"status": statuses[idx + 1]}).eq('id', task['id']).execute()
                             st.rerun()
 
-# --- CSS STYLES FÜR DEN GLOSSY-LOOK (FARBLICH KORRIGIERT) ---
-def inject_glossy_shopping_css():
-    st.markdown("""
-    <style>
-        /* ---------------------------------------------------- */
-        /* NEU: SEITENLEISTEN-ANPASSUNG (Sidebar Navigation) */
-        /* ---------------------------------------------------- */
-        /* Allgemeiner Hintergrund für Sidebar-Widgets */
-        div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div:nth-child(2) > div:nth-child(1) div[data-testid="stVerticalBlock"] > div {
-            /* Hintergrund für die Navigationsblöcke */
-            background: rgba(255, 255, 255, 0.05); 
-            border-radius: 14px;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-
-        /* Navigations-Links (z.B. Kanban, Einkaufsliste) */
-        .stSidebar .stButton button {
-            /* Standardzustand der Navigationslinks */
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: #f3f4f6 !important;
-            box-shadow: none !important;
-        }
-        
-        /* Aktiver Navigationslink (Das grässliche Grün wird ersetzt) */
-        /* Target the specific background used in the image for the active tab (e.g., Einkaufsliste) */
-        /* Hier wird versucht, das Element zu finden, das das grüne Rechteck erzeugt hat */
-        div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div:nth-child(2) div[data-testid="stVerticalBlock"] > div:nth-child(2) .stButton button {
-            /* Das grässliche Grün wird durch ein tiefes, sattes Blau ersetzt */
-            background: linear-gradient(145deg, rgba(80, 100, 200, 0.8), rgba(40, 60, 150, 0.7)) !important;
-            border: 1px solid rgba(120, 150, 250, 0.5) !important;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-        }
-
-
-        /* ---------------------------------------------------- */
-        /* KORREKTUR DER HAUPT-FARBEN (Listen-Elemente) */
-        /* ---------------------------------------------------- */
-
-        /* Allgemeine Transparenz für Streamlit-Blöcke */
-        div[data-testid^="stHorizontalBlock"],
-        div[data-testid^="stVerticalBlock"],
-        div[data-testid="stBlock"] {
-            background-color: transparent !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        /* Haupt-Container für Listen-Erstellung (Weicher Blau/Violett-Verlauf) */
-        .list-creator-card {
-            background: linear-gradient(135deg, rgba(70, 130, 180, 0.15), rgba(138, 43, 226, 0.1)); /* SteelBlue/BlueViolet */
-            border: 2px solid rgba(70, 130, 180, 0.5);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            padding: 10px 20px 20px 20px;
-            margin-bottom: 25px;
-        }
-
-        /* Glossy Input/Select Styles */
-        .stTextInput > div > div > input,
-        .stSelectbox > div > div,
-        .stMultiSelect > div > div,
-        .stExpander {
-            background: rgba(255, 255, 255, 0.08) !important;
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 12px !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            color: #f3f4f6;
-        }
-
-        /* Button Glossy Style (Blau-Violett) */
-        .stButton button {
-            background: linear-gradient(145deg, rgba(120, 150, 250, 0.8), rgba(80, 100, 200, 0.7));
-            color: white !important;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        /* Trash Button Style (Dunkles Rot/Tomato) */
-        .trash-button button {
-            background: rgba(255, 99, 71, 0.15) !important; /* Tomato */
-            border: 1px solid rgba(255, 99, 71, 0.5) !important;
-            box-shadow: none !important;
-            color: #FF6347 !important; 
-            padding: 5px 10px;
-        }
-        .trash-button button:hover {
-            background: rgba(255, 99, 71, 0.3) !important;
-            transform: none !important;
-        }
-        
-        /* Checkbox-Farbe verbessert (Checked-Zustand: Dunkles Grün/Olive) */
-        .st-ag { 
-             background-color: #556B2F !important; /* DarkOliveGreen */
-             border-color: #556B2F !important; 
-        }
-
-        /* Input/Selectbox mit speziellem Hintergrund (Artikel hinzufügen) */
-        /* Diese Selektoren wurden angepasst, um das helle Grün zu entfernen */
-        div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stTextInput > div > div > input,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) .stSelectbox > div > div,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(3) .stTextInput > div > div > input 
-        {
-            /* Neutraler dunkler Glossy-Hintergrund beibehalten */
-            background: rgba(255, 255, 255, 0.08) !important; 
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        }
-        
-    </style>
-    """, unsafe_allow_html=True)
-
-# ... (Der Rest der Python-Funktion bleibt unverändert in seiner Logik)
-
-
+# Einkaufsliste mit Supabase
 def shopping_list():
-    # CSS injizieren
-    inject_glossy_shopping_css() 
-    
     st.title("🛒 Einkaufsliste")
     
-    # ----------------------------------------------------
-    # KORREKTUR: Robuste Ermittlung der User ID
-    # ----------------------------------------------------
-    if 'user' in st.session_state and isinstance(st.session_state.user, dict):
-        user_id = st.session_state.user.get('id', 'unknown_user')
-    # Für den Fall, dass user ein Objekt mit .id ist, was der ursprünglichen Annahme entsprach (Fallback, aber der Fehler deutet auf 'dict' hin)
-    elif 'user' in st.session_state and hasattr(st.session_state.user, 'id'):
-         user_id = st.session_state.user.id
-    else:
-        user_id = 'unknown_user'
-
-
-    # Prüfen, ob der Client und Family ID verfügbar sind
-    if 'supabase' not in globals():
-        st.error("❌ Kritischer Fehler: Supabase-Client ('supabase') ist nicht global verfügbar.")
+    if not st.session_state.family_id:
+        st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
-    if not st.session_state.get('family_id'):
-        st.warning("⚠️ Sie sind keiner Familie zugeordnet. Bitte melden Sie sich an.")
-        return
-    if user_id == 'unknown_user':
-        st.warning("⚠️ Benutzer-ID konnte nicht ermittelt werden. Listen werden unter 'unknown_user' erstellt.")
     
-    # --- 1. Listen laden ---
+    # Listen laden
     try:
-        lists_response = globals()['supabase'].table('shopping_lists').select('*').eq('family_id', st.session_state.family_id).order('name').execute()
+        lists_response = supabase.table('shopping_lists').select('*').eq('family_id', st.session_state.family_id).execute()
         lists = lists_response.data
     except Exception as e:
-        st.error(f"Fehler beim Laden der Listen: {str(e)}")
-        lists = []
-        
+        st.error(f"Fehler: {str(e)}")
+        return
     
-    # --- 2. Neue Liste erstellen ---
-    st.markdown('<div class="list-creator-card">', unsafe_allow_html=True)
-    with st.expander("➕ **Neue Einkaufsliste erstellen**", expanded=False):
-        col_input, col_btn = st.columns([3, 1])
-        with col_input:
-             new_list_name = st.text_input("Name der neuen Liste", key="new_list_name_input", label_visibility="collapsed", placeholder="z.B. Wocheneinkauf, Drogerie")
-        with col_btn:
-             if st.button("Liste erstellen", use_container_width=True) and new_list_name:
-                try:
-                    globals()['supabase'].table('shopping_lists').insert({
-                        "family_id": st.session_state.family_id,
-                        # KORRIGIERTE ZEILE: Verwendet die oben ermittelte user_id
-                        "created_by": user_id, 
-                        "name": new_list_name
-                    }).execute()
-                    st.success(f"✅ Liste '{new_list_name}' erstellt! Lade neu...")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Fehler beim Erstellen: {str(e)}")
-    st.markdown('</div>', unsafe_allow_html=True) 
-
+    # Neue Liste erstellen
+    with st.expander("➕ Neue Liste erstellen"):
+        new_list = st.text_input("Name der neuen Liste")
+        if st.button("Liste erstellen") and new_list:
+            try:
+                supabase.table('shopping_lists').insert({
+                    "family_id": st.session_state.family_id,
+                    "created_by": st.session_state.user.id,
+                    "name": new_list
+                }).execute()
+                st.success(f"✅ Liste '{new_list}' erstellt!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Fehler: {str(e)}")
+    
     if not lists:
-        st.info("Noch keine Listen vorhanden. Erstellen Sie eine neue Liste, um fortzufahren.")
+        st.info("Noch keine Listen vorhanden. Erstellen Sie eine neue Liste!")
         return
     
-    # --- 3. Liste auswählen ---
-    list_options = {l['name']: l['id'] for l in lists}
-    selected_list_name = st.selectbox("Aktuelle Liste auswählen", list(list_options.keys()))
-    selected_list_id = list_options.get(selected_list_name)
+    # Liste auswählen
+    list_names = [l['name'] for l in lists]
+    selected_list_name = st.selectbox("Liste", list_names)
+    selected_list = next(l for l in lists if l['name'] == selected_list_name)
     
-    if not selected_list_id:
-        st.error("Fehler: Keine Liste ausgewählt.")
-        return
-    
-    # --- 4. Artikel hinzufügen ---
-    st.subheader(f"➕ Artikel zu '{selected_list_name}' hinzufügen")
+    # Artikel hinzufügen
     col1, col2, col3 = st.columns([3, 2, 1])
     with col1:
-        item_name = st.text_input("Artikelname", key="new_item", label_visibility="collapsed", placeholder="Milch, Brot, Eier...")
+        item_name = st.text_input("Artikel", key="new_item")
     with col2:
-        item_category = st.selectbox("Kategorie", ["Lebensmittel", "Drogerie", "Haushalt", "Sonstiges"], key="item_category")
+        item_category = st.selectbox("Kategorie", ["Lebensmittel", "Drogerie", "Haushalt", "Sonstiges"])
     with col3:
-        item_quantity = st.text_input("Menge", "1", key="quantity", placeholder="Menge")
+        item_quantity = st.text_input("Menge", "1", key="quantity")
     
-    if st.button("Hinzufügen", use_container_width=True, type="primary") and item_name:
+    if st.button("Hinzufügen", use_container_width=True) and item_name:
         try:
-            globals()['supabase'].table('shopping_items').insert({
-                "list_id": selected_list_id,
+            supabase.table('shopping_items').insert({
+                "list_id": selected_list['id'],
                 "name": item_name,
                 "category": item_category,
                 "quantity": item_quantity,
@@ -509,25 +356,19 @@ def shopping_list():
             }).execute()
             st.rerun()
         except Exception as e:
-            st.error(f"Fehler beim Hinzufügen des Artikels: {str(e)}")
+            st.error(f"Fehler: {str(e)}")
     
     st.divider()
     
-    # --- 5. Artikel laden und anzeigen ---
-    st.subheader(f"📝 Artikel in '{selected_list_name}'")
-    
+    # Artikel laden
     try:
-        items_response = globals()['supabase'].table('shopping_items').select('*').eq('list_id', selected_list_id).order('category').order('name').execute()
+        items_response = supabase.table('shopping_items').select('*').eq('list_id', selected_list['id']).execute()
         items = items_response.data
     except Exception as e:
-        st.error(f"Fehler beim Laden der Artikel: {str(e)}")
+        st.error(f"Fehler: {str(e)}")
         return
     
-    if not items:
-        st.info("Diese Liste ist leer. Fügen Sie oben Artikel hinzu!")
-        return
-        
-    # Artikel nach Kategorie gruppieren
+    # Nach Kategorie gruppieren
     categories = {}
     for item in items:
         cat = item['category']
@@ -535,59 +376,22 @@ def shopping_list():
             categories[cat] = []
         categories[cat].append(item)
     
-    # Anzeige der Artikel, gruppiert nach Kategorie
     for category, cat_items in categories.items():
-        st.markdown(f"### 📦 {category}")
-        
-        # Sortiere nach: Ungeprüft zuerst, dann alphabetisch
-        sorted_items = sorted(cat_items, key=lambda x: (x['is_checked'], x['name']))
-
-        # Layout der Liste
-        for item in sorted_items:
-            st.markdown('<div class="item-row">', unsafe_allow_html=True)
-            col1, col2 = st.columns([5, 1])
-            
+        st.subheader(f"📦 {category}")
+        for item in cat_items:
+            col1, col2 = st.columns([4, 1])
             with col1:
-                # Checkbox Logik: Aktualisiert is_checked in Supabase
                 checked = st.checkbox(
-                    f"**{item['name']}** ({item['quantity']})",
+                    f"{item['name']} ({item['quantity']})",
                     value=item['is_checked'],
-                    key=f"item_check_{item['id']}"
+                    key=f"item_{item['id']}"
                 )
-                
-                # Check, ob der Zustand geändert wurde
                 if checked != item['is_checked']:
-                    try:
-                        globals()['supabase'].table('shopping_items').update({"is_checked": checked}).eq('id', item['id']).execute()
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Fehler beim Aktualisieren: {str(e)}")
-                        
+                    supabase.table('shopping_items').update({"is_checked": checked}).eq('id', item['id']).execute()
             with col2:
-                # Lösch-Button Logik
-                st.markdown('<div class="trash-button">', unsafe_allow_html=True)
-                if st.button("🗑️", key=f"del_item_{item['id']}", use_container_width=True):
-                    try:
-                        globals()['supabase'].table('shopping_items').delete().eq('id', item['id']).execute()
-                        st.success(f"Artikel '{item['name']}' gelöscht!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Fehler beim Löschen: {str(e)}")
-                st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-    # Optional: Button zum Löschen aller erledigten Artikel
-    checked_items = [item for item in items if item['is_checked']]
-    if checked_items:
-        st.markdown("---")
-        if st.button(f"🧹 **Alle {len(checked_items)} erledigten Artikel löschen**", type="secondary", use_container_width=True):
-            try:
-                globals()['supabase'].table('shopping_items').delete().eq('list_id', selected_list_id).eq('is_checked', True).execute()
-                st.success("✅ Erledigte Artikel bereinigt!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Fehler beim Bereinigen: {str(e)}")
+                if st.button("🗑️", key=f"del_item_{item['id']}"):
+                    supabase.table('shopping_items').delete().eq('id', item['id']).execute()
+                    st.rerun()
 
  # Ferienplanung mit Premium UI
 def vacation_planning():
