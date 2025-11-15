@@ -833,7 +833,6 @@ def weekly_schedule():
              border: none !important;
         }
 
-        /* NEUE KLASSE FÜR LÖSCHEN-BUTTON */
         .delete-button-box {
             background: rgba(255, 59, 48, 0.15) !important;
             backdrop-filter: blur(10px);
@@ -873,7 +872,16 @@ def weekly_schedule():
         
         if st.button("✨ Termin erstellen", use_container_width=True, type="primary") and event_title:
             try:
-                # Supabase Insert hier einfügen
+                supabase.table('schedule_events').insert({
+                    'family_id': st.session_state.family_id,
+                    'title': event_title,
+                    'person': person,
+                    'category': event_category,
+                    'event_date': str(event_date),
+                    'start_time': str(start_time),
+                    'end_time': str(end_time),
+                    'description': description
+                }).execute()
                 st.success("✅ Termin erfolgreich erstellt!")
                 st.rerun() 
             except Exception as e:
@@ -882,47 +890,33 @@ def weekly_schedule():
     
     st.divider()
     
-    # KORREKTUR: Korrektes heute-Datum verwenden (nicht hardcoded)
+    # KORRIGIERT: Berechnung der aktuellen Woche
     today = datetime.now().date()
-    
     week_offset_raw = st.session_state.get('week_offset', 0)
+    
+    # Wochenstart = Montag der aktuellen Woche + Offset
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
+    week_end = week_start + timedelta(days=6)
     
     try:
-        # TESTDATEN mit korrekten Daten
-        # Für echte Implementierung: Supabase Abfrage hier einfügen
-        events = [
-            {
-                'id': 1, 
-                'event_date': str(week_start + timedelta(days=5)),  # Samstag
-                'start_time': '14:00:00', 
-                'end_time': '16:00:00', 
-                'title': 'Mathe Nachhilfe', 
-                'person': 'Tomek', 
-                'category': 'Schule', 
-                'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'
-            },
-            {
-                'id': 2, 
-                'event_date': str(week_start + timedelta(days=6)),  # Sonntag
-                'start_time': '13:00:00', 
-                'end_time': '18:10:00', 
-                'title': 'Kino', 
-                'person': 'Lukasz', 
-                'category': 'Freizeit', 
-                'description': ''
-            },
-            {
-                'id': 3, 
-                'event_date': str(week_start + timedelta(days=6)),  # Sonntag
-                'start_time': '01:00:00', 
-                'end_time': '17:00:00', 
-                'title': 'Harry Potter Kino', 
-                'person': 'Lukasz', 
-                'category': 'Freizeit', 
-                'description': 'Harry Potter Vorstellung im Rhein Center'
-            },
-        ]
+        # KORRIGIERT: Supabase Query mit korrektem Datumsbereich
+        response = supabase.table('schedule_events')\
+            .select('*')\
+            .eq('family_id', st.session_state.family_id)\
+            .gte('event_date', str(week_start))\
+            .lte('event_date', str(week_end))\
+            .order('event_date')\
+            .order('start_time')\
+            .execute()
+        
+        events = response.data if response.data else []
+        
+        # DEBUG: Zeige geladene Events zur Überprüfung
+        if st.session_state.get('debug_mode'):
+            st.info(f"📊 Geladene Events: {len(events)} | Zeitraum: {week_start} bis {week_end}")
+            for e in events:
+                st.text(f"  - {e['event_date']} | {e['title']}")
+        
     except Exception as e:
         st.error(f"❌ Fehler beim Laden: {str(e)}")
         events = []
@@ -934,15 +928,13 @@ def weekly_schedule():
             st.session_state.week_offset = st.session_state.get('week_offset', 0) - 1
             st.rerun()
     with col2:
-        current_week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
-        current_week_end = current_week_start + timedelta(days=6)
         st.markdown(f"""
         <div style="text-align: center; padding: 16px; 
                       background: linear-gradient(135deg, #1f2937 0%, #0f172a 100%); 
                       border-radius: 18px; color: #9ca3af; font-weight: 700; font-size: 1.1em;
                       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.1);
                       border: 2px solid rgba(255, 255, 255, 0.1);">
-              📅 <span style="color: white;">{current_week_start.strftime('%d.%m.%Y')} - {current_week_end.strftime('%d.%m.%Y')}</span>
+              📅 <span style="color: white;">{week_start.strftime('%d.%m.%Y')} - {week_end.strftime('%d.%m.%Y')}</span>
         </div>
         """, unsafe_allow_html=True)
     with col3:
@@ -984,32 +976,37 @@ def weekly_schedule():
         </div>
         '''
     
-    # Zeitslots und Events
+    # KORRIGIERT: Zeitslots und Events mit präziser Datum-Konvertierung
     for time_slot in time_slots:
         calendar_html += f'<div class="time-label">{time_slot}</div>'
         
         for i in range(7):
             day = week_start + timedelta(days=i)
+            day_str = str(day)  # WICHTIG: Konvertiere date zu string für Vergleich
             is_today_class = "today" if day == today else ""
             
+            # KORRIGIERT: Vergleiche mit String-Datum
             day_events = [
                 e for e in events 
-                if e.get('event_date') == str(day) 
+                if e.get('event_date') == day_str
                 and (not filter_person or e.get('person') in filter_person)
-                and e.get('start_time', '')[:2] == time_slot[:2]
+                and e.get('start_time', '')[:5].split(':')[0] == time_slot[:2]  # Nur Stunde vergleichen
             ]
             
             cell_content = ""
             for event in day_events:
                 color = COLORS.get(event.get('category'), '#CCCCCC')
                 event_id = event['id']
+                # Escape HTML in description für sicheres Rendering
+                desc_safe = event.get('description', '').replace('"', '&quot;').replace("'", '&#39;')
+                
                 cell_content += f'''
                 <div class="event-block" 
                       style="background: linear-gradient(145deg, {color}30, {color}15); 
                             border-left: 5px solid {color};
                             box-shadow: 0 8px 24px {color}30, inset 0 1px 0 rgba(255,255,255,0.2);" 
                       onclick="deleteEvent('{event_id}')"
-                      title="🗑️ Klicken zum Löschen: {event.get('description', '')}">
+                      title="🗑️ Klicken zum Löschen: {desc_safe}">
                     <div class="event-time">{event.get('start_time', '')[:5]}-{event.get('end_time', '')[:5]}</div>
                     <div class="event-title">{event.get('title', 'N/A')}</div>
                     <div class="event-person">👤 {event.get('person', 'N/A')}</div>
@@ -1120,7 +1117,25 @@ def weekly_schedule():
             font-size: 0.85em;
             cursor: pointer;
             color: white; 
-            position: relative; 
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }}
+        
+        .event-block:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }}
+        
+        .delete-hint {{
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }}
+        
+        .event-block:hover .delete-hint {{
+            display: block;
         }}
         </style>
     </head>
@@ -1145,7 +1160,7 @@ def weekly_schedule():
     if 'delete_event_id' in st.session_state:
         event_id = st.session_state.delete_event_id
         try:
-            # Supabase Delete hier einfügen
+            supabase.table('schedule_events').delete().eq('id', event_id).execute()
             st.success("✅ Termin gelöscht!")
             del st.session_state.delete_event_id
             st.rerun() 
@@ -1165,15 +1180,14 @@ def weekly_schedule():
     </h2>
     """, unsafe_allow_html=True)
     
+    # KORRIGIERT: Filter-Logik für Wochenevents
     week_events = [
         e for e in events
-        if str(week_start) <= e.get('event_date', '') <= str(week_start + timedelta(days=6))
-        and (not filter_person or e.get('person') in filter_person)
+        if (not filter_person or e.get('person') in filter_person)
     ]
     
     if week_events:
         for event in sorted(week_events, key=lambda x: (x.get('event_date', ''), x.get('start_time', ''))):
-            # KORREKTUR: Neue Column-Struktur für Löschen-Button
             col1, col2 = st.columns([10, 1])
             with col1:
                 event_date = datetime.strptime(event['event_date'], '%Y-%m-%d').date()
@@ -1237,13 +1251,15 @@ def weekly_schedule():
                 </div>
                 """, unsafe_allow_html=True)
             
-            # KORREKTUR: Box-Styling für Löschen-Button
             with col2:
                 st.markdown('<div class="delete-button-box">', unsafe_allow_html=True)
                 if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True):
-                    # Supabase Delete hier einfügen
-                    st.success("✅ Gelöscht!")
-                    st.rerun()
+                    try:
+                        supabase.table('schedule_events').delete().eq('id', event['id']).execute()
+                        st.success("✅ Gelöscht!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Fehler: {str(e)}")
                 st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.markdown("""
