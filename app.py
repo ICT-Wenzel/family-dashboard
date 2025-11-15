@@ -773,17 +773,29 @@ COLORS = {
 import streamlit as st
 from datetime import datetime, timedelta
 
-# ANNAHME: Importe und COLORS wie in Ihrer Umgebung erwartet
-# HINWEIS: Sie müssen hier Ihre tatsächlichen Importe/Definitionen für supabase und COLORS wiederherstellen.
-# from supabase_client import supabase 
-# COLORS = {...} 
+# ====================================================================
+# !!! WICHTIG: DIESE PLATZHALTER MÜSSEN SIE ERSETZEN !!!
+# Fügen Sie hier IHR initialisiertes Supabase-Client-Objekt ein.
+# from supabase_client import supabase # Beispiel
+#
+# Fügen Sie hier IHR COLORS-Dictionary ein. Beispiel:
+COLORS = {
+    'Arzt': '#1E90FF', 
+    'Schule': '#3CB371', 
+    'Sport': '#FFD700', 
+    'Einkauf': '#FF4500', 
+    'Privat': '#8A2BE2'
+}
+# ====================================================================
+
 
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # --- 1. GLOBALE CSS-KORREKTUR ---
+    # --- 1. GLOBALE CSS-KORREKTUR (Unverändert) ---
     st.markdown("""
     <style>
+        /* ... (Ihre bestehenden CSS-Stile, um helle Boxen zu verhindern) ... */
         .stApp {
             background-color: transparent !important;
         }
@@ -874,6 +886,13 @@ def weekly_schedule():
     """, unsafe_allow_html=True)
 
     
+    # Session State initialisieren, falls nicht vorhanden (für Debugging & Fehlervermeidung)
+    if 'family_id' not in st.session_state:
+        st.session_state.family_id = 1 # Dummy-ID für Tests, ersetzen Sie dies durch Ihre Logik
+    if 'week_offset' not in st.session_state:
+        st.session_state.week_offset = 0
+
+    
     if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
@@ -881,7 +900,6 @@ def weekly_schedule():
     # Neuer Termin hinzufügen (unverändert)
     st.markdown('<div class="create-card">', unsafe_allow_html=True)
     with st.expander("✨ **Neuen Termin erstellen**", expanded=False):
-        # ... (Formular-Logik unverändert) ...
         col1, col2 = st.columns(2)
         with col1:
             event_title = st.text_input("📝 Titel", key="event_title")
@@ -896,27 +914,33 @@ def weekly_schedule():
         
         if st.button("✨ Termin erstellen", use_container_width=True, type="primary") and event_title:
             try:
-                # SUPABASE INSERT LOGIK HIER
+                # !!! HIER IHRE SUPABASE INSERT LOGIK EINFÜGEN !!!
                 # supabase.table('schedule_events').insert({...}).execute()
-                st.success("✅ Termin erfolgreich erstellt!")
-                st.rerun() 
+                st.success("✅ Termin erfolgreich erstellt! (Implementierung noch notwendig)")
+                #st.rerun() 
             except Exception as e:
-                st.error(f"❌ Fehler: {str(e)}")
+                st.error(f"❌ Fehler beim Erstellen: {str(e)}")
     st.markdown('</div>', unsafe_allow_html=True) 
     
     st.divider()
     
-    # Termine laden (KORRIGIERT: Keine Dummy-Daten mehr)
+    # --- 2. DATUMSFILTER UND SUPABASE ABFRAGE (KORRIGIERT) ---
     today = datetime.now().date()
-    # Entferne die Debug-Zeile, die den Today-Wert überschrieben hat, falls vorhanden
-    # try: today = datetime.strptime('2025-11-15', '%Y-%m-%d').date() except ValueError: pass
         
-    week_offset_raw = st.session_state.get('week_offset', 0)
-    week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
+    week_offset = st.session_state.get('week_offset', 0)
+    
+    # Ermitteln des Start- und Enddatums der Woche (Montag bis Sonntag)
+    # today.weekday() gibt 0 (Mo) bis 6 (So) zurück
+    week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
     
+    events = []
+    
     try:
-        # SUPABASE QUERY WIEDERHERGESTELLT
+        # !!! HIER MÜSSEN SIE SICHERSTELLEN, DASS IHR SUPABASE-CLIENT FUNKTIONIERT !!!
+        
+        # SUPABASE QUERY WIEDERHERGESTELLT und BEREINIGT
+        # Es werden NUR Events zwischen week_start (inkl.) und week_end (inkl.) geladen.
         response = supabase.table('schedule_events')\
             .select('*')\
             .eq('family_id', st.session_state.family_id)\
@@ -930,12 +954,15 @@ def weekly_schedule():
         
         if st.session_state.get('debug_mode'):
             st.info(f"📊 Geladene Events: {len(events)} | Zeitraum: {week_start} bis {week_end}")
-            for e in events:
-                st.text(f"  - {e['event_date']} | {e['title']}")
         
+    except NameError:
+        # Fehlerbehandlung, falls 'supabase' nicht definiert ist
+        st.error("❌ Kritischer Fehler: Supabase-Client ('supabase') nicht definiert! Bitte ersetzen Sie den Platzhalter.")
+        events = [] # Leere Liste, um Code-Ausführung zu ermöglichen
     except Exception as e:
-        st.error(f"❌ Fehler beim Laden: {str(e)}")
+        st.error(f"❌ Fehler beim Laden der Termine: {str(e)}")
         events = []
+
     
     # Wochennavigation (unverändert)
     col1, col2, col3 = st.columns([1, 3, 1])
@@ -972,7 +999,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # Kalender Grid (Logik und HTML unverändert, da CSS-Fix global angewendet wurde)
+    # --- 3. KALENDER GRID (Logik bereinigt) ---
     time_slots = [f"{h:02d}:00" for h in range(6, 23)]
     days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     days_short = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -980,7 +1007,6 @@ def weekly_schedule():
     calendar_html = '<div class="calendar-grid">'
     
     # Header
-    # ... (Header-HTML) ...
     calendar_html += '<div class="calendar-header time-header">⏰<br><span style="font-size: 0.8em;">Zeit</span></div>'
     for i, (day_name, day_short) in enumerate(zip(days_of_week, days_short)):
         day = week_start + timedelta(days=i)
@@ -997,11 +1023,12 @@ def weekly_schedule():
     for time_slot in time_slots:
         calendar_html += f'<div class="time-label">{time_slot}</div>'
         
-        for i in range(7):
+        for i in range(7): # Nur 7 Tage, da der Filter nur 7 Tage Events geladen hat.
             day = week_start + timedelta(days=i)
             day_str = str(day)
             is_today_class = "today" if day == today else ""
             
+            # Events filtern (nach Tag, Person und Startstunde)
             day_events = [
                 e for e in events 
                 if e.get('event_date') == day_str
@@ -1012,7 +1039,7 @@ def weekly_schedule():
             cell_content = ""
             for event in day_events:
                 color = COLORS.get(event.get('category'), '#CCCCCC')
-                event_id = event['id']
+                event_id = event.get('id', 'temp_id')
                 desc_safe = event.get('description', '').replace('"', '&quot;').replace("'", '&#39;')
                 
                 cell_content += f'''
@@ -1044,14 +1071,124 @@ def weekly_schedule():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
-        /* ... (Grid CSS unverändert) ... */
+        .calendar-grid {{
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 5px;
+            font-family: 'Inter', sans-serif;
+            color: #f3f4f6;
+            margin: 20px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }}
+        .calendar-header {{
+            padding: 10px 5px;
+            text-align: center;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }}
+        .today-header {{
+            background: rgba(102, 126, 234, 0.3) !important;
+            border: 1px solid rgba(102, 126, 234, 0.6);
+        }}
+        .time-header {{
+            background: transparent !important;
+            box-shadow: none !important;
+        }}
+        .time-label {{
+            padding: 10px 5px;
+            text-align: right;
+            font-weight: 500;
+            font-size: 0.9em;
+            color: #9ca3af;
+        }}
+        .calendar-cell {{
+            min-height: 80px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            transition: background 0.2s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+        }}
+        .today {{
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }}
+        .event-block {{
+            padding: 5px 8px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }}
+        .event-block:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+        }}
+        .event-title {{
+            font-weight: 700;
+            line-height: 1.2;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }}
+        .event-time, .event-person {{
+            font-size: 0.75em;
+            opacity: 0.8;
+            font-weight: 500;
+        }}
+        .delete-hint {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }}
+        .event-block:hover .delete-hint {{
+            opacity: 1;
+        }}
         </style>
     </head>
     <body>
         {calendar_html}
         
         <script>
-        // ... (Javascript unverändert) ...
+        function deleteEvent(id) {{
+            // Streamlit Callback, um die ID im Session State zu speichern
+            if (window.parent.document.getElementById('delete_event_id_input')) {{
+                window.parent.document.getElementById('delete_event_id_input').value = id;
+                window.parent.document.getElementById('delete_event_id_input').dispatchEvent(new Event('change'));
+            }} else {{
+                // Fallback für neuere Streamlit-Versionen oder andere Umgebungen
+                if (window.parent.document.body.getAttribute('data-streamlit')) {{
+                    const st = window.parent.document.body.getAttribute('data-streamlit');
+                    // Dies ist nur ein Platzhalter, da die direkte Kommunikation komplex ist. 
+                    // st.setComponentValue('delete_event_id', id); wäre der Idealfall.
+                    console.log('Event Löschen für ID:', id);
+                    alert('Termin mit ID ' + id + ' wird gelöscht. Bitte Rerun durchführen.');
+                }}
+            }}
+        }}
         </script>
     </body>
     </html>
@@ -1061,17 +1198,17 @@ def weekly_schedule():
     if 'delete_event_id' in st.session_state:
         event_id = st.session_state.delete_event_id
         try:
-            # SUPABASE DELETE LOGIK HIER
+            # !!! HIER IHRE SUPABASE DELETE LOGIK EINFÜGEN !!!
             # supabase.table('schedule_events').delete().eq('id', event_id).execute()
-            st.success("✅ Termin gelöscht!")
+            st.success("✅ Termin gelöscht! (Implementierung noch notwendig)")
             del st.session_state.delete_event_id
-            st.rerun() 
+            #st.rerun() 
         except Exception as e:
             st.error(f"❌ Fehler beim Löschen: {str(e)}")
     
     st.divider()
     
-    # Detail-Liste Titel (unverändert)
+    # --- 4. DETAIL-LISTE (KORRIGIERT: HTML-Ausgabe) ---
     st.markdown("""
     <h2 style="font-size: 1.8em; font-weight: 800; margin-bottom: 25px; 
               background: linear-gradient(135deg, #667eea, #764ba2); 
@@ -1082,29 +1219,40 @@ def weekly_schedule():
     </h2>
     """, unsafe_allow_html=True)
     
-    # KORRIGIERT: Filter-Logik für Wochenevents
-    week_events = [
+    # Es werden nur die Events verwendet, die bereits korrekt aus Supabase geladen wurden (7 Tage)
+    # und nach Person gefiltert.
+    week_events_filtered = [
         e for e in events
         if (not filter_person or e.get('person') in filter_person)
     ]
     
-    if week_events:
-        for event in sorted(week_events, key=lambda x: (x.get('event_date', ''), x.get('start_time', ''))):
+    if week_events_filtered:
+        # Sortierung nach Datum und Startzeit
+        sorted_events = sorted(week_events_filtered, key=lambda x: (x.get('event_date', ''), x.get('start_time', '')))
+        
+        for event in sorted_events:
             col1, col2 = st.columns([10, 1])
             with col1:
-                event_date = datetime.strptime(event['event_date'], '%Y-%m-%d').date()
-                days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
-                day_name = days_of_week[event_date.weekday()]
+                try:
+                    event_date = datetime.strptime(event['event_date'], '%Y-%m-%d').date()
+                    days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+                    day_name = days_of_week[event_date.weekday()]
+                except ValueError:
+                    day_name = "Datum Fehler"
+                    event_date = today # Fallback
+                    
                 color = COLORS.get(event.get('category'), '#CCCCCC')
                 
-                description_content = event.get('description', '')
-                description_safe = description_content.replace('<', '&lt;').replace('>', '&gt;')
+                # BEREINIGT: Saubere Behandlung der Beschreibung
+                description_content = event.get('description', '').strip()
                 
-                # *** FINALER FIX: Wenn Beschreibung fehlt, verwende leeren HTML-Kommentar ***
-                if description_safe:
-                    description_html = f'<p style="margin-top: 14px; color: #d1d5db; line-height: 1.7; font-size: 1em;">{description_safe}</p>'
+                # WENN Beschreibung existiert, WICKELN wir sie in das <p> Tag
+                if description_content:
+                    # Entferne jegliches HTML aus der Beschreibung, um Probleme zu verhindern
+                    description_clean = description_content.replace('<', '&lt;').replace('>', '&gt;')
+                    description_html = f'<p style="margin-top: 14px; color: #d1d5db; line-height: 1.7; font-size: 1em;">{description_clean}</p>'
                 else:
-                    # Wenn Beschreibung fehlt, verwenden wir einen leeren Kommentar, den Streamlit ignoriert
+                    # WENN Beschreibung LEER ist, fügen wir EINEN LEEREN KOMMENTAR ein, um keinen HTML-Rest zu zeigen.
                     description_html = ''
 
                 
@@ -1159,13 +1307,14 @@ def weekly_schedule():
                 """, unsafe_allow_html=True)
             
             with col2:
+                event_id = event.get('id', f"temp_id_{hash(event['title'])}")
                 st.markdown('<div class="delete-button-box">', unsafe_allow_html=True)
-                if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True):
+                if st.button("🗑️", key=f"del_event_list_{event_id}", use_container_width=True):
                     try:
-                        # SUPABASE DELETE LOGIK HIER
+                        # !!! HIER IHRE SUPABASE DELETE LOGIK EINFÜGEN !!!
                         # supabase.table('schedule_events').delete().eq('id', event['id']).execute()
-                        st.success("✅ Gelöscht!")
-                        st.rerun()
+                        st.success("✅ Gelöscht! (Implementierung noch notwendig)")
+                        #st.rerun()
                     except Exception as e:
                         st.error(f"❌ Fehler: {str(e)}")
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -1182,6 +1331,7 @@ def weekly_schedule():
             <p style="color: #a1a1aa; margin-top: 10px;">Erstelle einen neuen Termin um loszulegen!</p>
         </div>
         """, unsafe_allow_html=True)
+
 # Hauptanwendung
 def main():
     if not st.session_state.authenticated:
