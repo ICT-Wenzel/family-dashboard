@@ -208,31 +208,26 @@ def login_page():
                     if register_user(reg_email, reg_password, reg_display_name):
                         st.balloons()
 
-
 import streamlit as st
-# Importieren Sie die neue Komponente
+# Dieser Import funktioniert, sobald Schritt 1 (Installation) erledigt ist
 from streamlit_antd_dnd import dnd_board 
 
-# --- HINWEIS ---
-# Stellen Sie sicher, dass 'supabase' und 'COLORS' 
-# außerhalb dieser Funktion verfügbar sind, so wie in Ihrem Originalcode.
-# 
-# Beispiel für COLORS, falls es nicht global definiert ist:
+# --- Annahme: 'supabase' und 'COLORS' sind global verfügbar ---
 # COLORS = {
 #     "Standard": "#CCCCCC", "Arbeit": "#FF5733", "Privat": "#33FF57", 
 #     "Einkaufen": "#3357FF", "Wichtig": "#FF33A1"
 # }
-# ---
+# -----------------------------------------------------------
 
 def kanban_board():
     st.title("📋 Aufgabenverwaltung (Kanban)")
     
+    # 1. Family ID prüfen
     if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet. Bitte kontaktieren Sie Ihren Administrator.")
         return
     
-    # --- 1. Neue Aufgabe hinzufügen ---
-    # (Dieser Abschnitt ist unverändert aus Ihrem Code)
+    # 2. Neue Aufgabe hinzufügen (Unverändert)
     with st.expander("➕ Neue Aufgabe erstellen"):
         col1, col2 = st.columns(2)
         with col1:
@@ -262,8 +257,7 @@ def kanban_board():
             except Exception as e:
                 st.error(f"Fehler: {str(e)}")
     
-    # --- 2. Aufgaben laden ---
-    # (Dieser Abschnitt ist unverändert)
+    # 3. Aufgaben laden (Unverändert)
     tasks = []
     try:
         response = supabase.table('tasks').select('*').eq('family_id', st.session_state.family_id).order('created_at', desc=True).execute()
@@ -272,23 +266,16 @@ def kanban_board():
         st.error(f"Fehler beim Laden: {str(e)}")
         return
     
-    # --- 3. Daten für das D&D-Board vorbereiten (NEU) ---
-    
+    # 4. Daten für D&D-Board vorbereiten
     statuses = ["To-Do", "In Progress", "Done"]
-    boards_data = [] # Dies wird die Datenstruktur für das D&D-Board
-
-    # Original-Status für den Abgleich nach dem Verschieben speichern
+    boards_data = []
     original_statuses = {str(task['id']): task['status'] for task in tasks}
 
     for status in statuses:
-        # Aufgaben für diese Spalte filtern
         status_tasks = [t for t in tasks if t['status'] == status]
         
-        # Karten für das dnd_board-Format erstellen
         cards = []
         for task in status_tasks:
-            # Erstellen Sie den Inhalt der Karte. 
-            # Die dnd_board-Komponente verwendet `title` und `content` (Markdown-fähig).
             card_content = f"""
             {task.get('description', '')}
             <br><small>
@@ -297,36 +284,68 @@ def kanban_board():
             ⚡ {task['priority']} | 📅 {task.get('due_date', 'N/A')}
             </small>
             """
-            
             cards.append({
-                "id": str(task['id']), # WICHTIG: ID muss ein String sein
+                "id": str(task['id']), # ID muss String sein
                 "title": task['title'],
                 "content": card_content,
-                # Wir können die KATEGORIE-Farbe nicht einfach als Rand setzen,
-                # aber wir können die Titelfarbe leicht anpassen (optional)
-                "style": {"color": COLORS.get(task['category'], "#333333")}
             })
         
-        # Spalten-Definition für das dnd_board
         boards_data.append({
-            "id": status, # Spalten-ID
-            "title": f"{status} ({len(status_tasks)})", # Spalten-Titel
+            "id": status,
+            "title": f"{status} ({len(status_tasks)})",
             "cards": cards,
             "style": {
                 "background-color": "#f0f2f6", 
                 "border-radius": "5px", 
                 "padding": "10px", 
-                "min-height": "400px" # Mindesthöhe für D&D-Ziel
+                "min-height": "400px"
             }
         })
 
-    # --- 4. Das Drag-and-Drop Board rendern (NEU) ---
-    
+    # 5. D&D-Board rendern
     st.markdown("---")
     st.subheader("Kanban Board (Drag & Drop)")
     
-    # Die Komponente aufrufen. 'result' enthält den *neuen* Zustand nach einer D&D-Aktion.
-    # return_type='dict' ist
+    result = dnd_board(boards_data, key="kanban_dnd", return_type='dict')
+
+    # 6. Ergebnis (Verschiebung) verarbeiten
+    if result:
+        new_boards = result['boards']
+        
+        for board in new_boards:
+            new_status = board['id'] # z.B. "In Progress"
+            for card in board['cards']:
+                task_id = str(card['id']) 
+                
+                # Prüfen, ob sich der Status geändert hat
+                if original_statuses.get(task_id) != new_status:
+                    try:
+                        supabase.table('tasks').update({"status": new_status}).eq('id', task_id).execute()
+                        st.toast(f"🚀 '{card['title']}' nach {new_status} verschoben!", icon="🚀")
+                        st.rerun() 
+                    except Exception as e:
+                        st.error(f"Fehler beim Verschieben: {str(e)}")
+                    return 
+
+    # 7. Aufgaben löschen (Unverändert)
+    st.markdown("---")
+    with st.expander("🗑️ Aufgaben verwalten (Löschen)"):
+        if not tasks:
+            st.info("Keine Aufgaben zum Verwalten vorhanden.")
+        
+        for task in sorted(tasks, key=lambda x: x.get('title', '')):
+            col_del_1, col_del_2 = st.columns([3, 1])
+            with col_del_1:
+                st.write(f"**{task.get('title', 'N/A')}**")
+                st.caption(f"Status: {task.get('status', 'N/A')} | Prio: {task.get('priority', 'N/A')}")
+            with col_del_2:
+                if st.button("Löschen", key=f"delete_task_{task.get('id')}", use_container_width=True, type="primary"):
+                    try:
+                        supabase.table('tasks').delete().eq('id', task['id']).execute()
+                        st.toast(f"🗑️ Aufgabe '{task.get('title')}' gelöscht!", icon="🗑️")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Fehler beim Löschen: {str(e)}")
 
 # Einkaufsliste mit Supabase
 def shopping_list():
