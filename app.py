@@ -208,26 +208,15 @@ def login_page():
                     if register_user(reg_email, reg_password, reg_display_name):
                         st.balloons()
 
-import streamlit as st
-# Dieser Import funktioniert, sobald Schritt 1 (Installation) erledigt ist
-from streamlit_antd_dnd import dnd_board 
-
-# --- Annahme: 'supabase' und 'COLORS' sind global verfügbar ---
-# COLORS = {
-#     "Standard": "#CCCCCC", "Arbeit": "#FF5733", "Privat": "#33FF57", 
-#     "Einkaufen": "#3357FF", "Wichtig": "#FF33A1"
-# }
-# -----------------------------------------------------------
-
+# Kanban Board mit Supabase
 def kanban_board():
     st.title("📋 Aufgabenverwaltung (Kanban)")
     
-    # 1. Family ID prüfen
-    if not st.session_state.get('family_id'):
+    if not st.session_state.family_id:
         st.warning("⚠️ Sie sind keiner Familie zugeordnet. Bitte kontaktieren Sie Ihren Administrator.")
         return
     
-    # 2. Neue Aufgabe hinzufügen (Unverändert)
+    # Neue Aufgabe hinzufügen
     with st.expander("➕ Neue Aufgabe erstellen"):
         col1, col2 = st.columns(2)
         with col1:
@@ -257,8 +246,7 @@ def kanban_board():
             except Exception as e:
                 st.error(f"Fehler: {str(e)}")
     
-    # 3. Aufgaben laden (Unverändert)
-    tasks = []
+    # Aufgaben laden
     try:
         response = supabase.table('tasks').select('*').eq('family_id', st.session_state.family_id).order('created_at', desc=True).execute()
         tasks = response.data
@@ -266,86 +254,47 @@ def kanban_board():
         st.error(f"Fehler beim Laden: {str(e)}")
         return
     
-    # 4. Daten für D&D-Board vorbereiten
+    # Kanban Spalten
+    col1, col2, col3 = st.columns(3)
     statuses = ["To-Do", "In Progress", "Done"]
-    boards_data = []
-    original_statuses = {str(task['id']): task['status'] for task in tasks}
-
-    for status in statuses:
-        status_tasks = [t for t in tasks if t['status'] == status]
-        
-        cards = []
-        for task in status_tasks:
-            card_content = f"""
-            {task.get('description', '')}
-            <br><small>
-            📌 {task['category']} | 👤 {task.get('assigned_to', 'Niemand')}
-            <br>
-            ⚡ {task['priority']} | 📅 {task.get('due_date', 'N/A')}
-            </small>
-            """
-            cards.append({
-                "id": str(task['id']), # ID muss String sein
-                "title": task['title'],
-                "content": card_content,
-            })
-        
-        boards_data.append({
-            "id": status,
-            "title": f"{status} ({len(status_tasks)})",
-            "cards": cards,
-            "style": {
-                "background-color": "#f0f2f6", 
-                "border-radius": "5px", 
-                "padding": "10px", 
-                "min-height": "400px"
-            }
-        })
-
-    # 5. D&D-Board rendern
-    st.markdown("---")
-    st.subheader("Kanban Board (Drag & Drop)")
+    columns = [col1, col2, col3]
     
-    result = dnd_board(boards_data, key="kanban_dnd", return_type='dict')
-
-    # 6. Ergebnis (Verschiebung) verarbeiten
-    if result:
-        new_boards = result['boards']
-        
-        for board in new_boards:
-            new_status = board['id'] # z.B. "In Progress"
-            for card in board['cards']:
-                task_id = str(card['id']) 
-                
-                # Prüfen, ob sich der Status geändert hat
-                if original_statuses.get(task_id) != new_status:
-                    try:
-                        supabase.table('tasks').update({"status": new_status}).eq('id', task_id).execute()
-                        st.toast(f"🚀 '{card['title']}' nach {new_status} verschoben!", icon="🚀")
-                        st.rerun() 
-                    except Exception as e:
-                        st.error(f"Fehler beim Verschieben: {str(e)}")
-                    return 
-
-    # 7. Aufgaben löschen (Unverändert)
-    st.markdown("---")
-    with st.expander("🗑️ Aufgaben verwalten (Löschen)"):
-        if not tasks:
-            st.info("Keine Aufgaben zum Verwalten vorhanden.")
-        
-        for task in sorted(tasks, key=lambda x: x.get('title', '')):
-            col_del_1, col_del_2 = st.columns([3, 1])
-            with col_del_1:
-                st.write(f"**{task.get('title', 'N/A')}**")
-                st.caption(f"Status: {task.get('status', 'N/A')} | Prio: {task.get('priority', 'N/A')}")
-            with col_del_2:
-                if st.button("Löschen", key=f"delete_task_{task.get('id')}", use_container_width=True, type="primary"):
-                    try:
-                        supabase.table('tasks').delete().eq('id', task['id']).execute()
-                        st.toast(f"🗑️ Aufgabe '{task.get('title')}' gelöscht!", icon="🗑️")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Fehler beim Löschen: {str(e)}")
+    for status, col in zip(statuses, columns):
+        with col:
+            status_tasks = [t for t in tasks if t['status'] == status]
+            st.subheader(f"{status} ({len(status_tasks)})")
+            
+            for task in status_tasks:
+                with st.container():
+                    st.markdown(f"""
+                    <div style="background-color: {COLORS.get(task['category'], '#CCCCCC')}20; 
+                                padding: 15px; 
+                                border-radius: 10px; 
+                                border-left: 5px solid {COLORS.get(task['category'], "#CCCCCC")};
+                                margin-bottom: 10px;">
+                        <h4 style="margin: 0;">{task['title']}</h4>
+                        <p style="margin: 5px 0; font-size: 0.9em;">{task.get('description', '')}</p>
+                        <small>📌 {task['category']} | 👤 {task.get('assigned_to', 'Niemand')} | 📅 {task.get('due_date', 'N/A')}</small><br>
+                        <small>⚡ Priorität: {task['priority']}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Status ändern
+                    col_a, col_b, col_c = st.columns(3)
+                    with col_a:
+                        if status != "To-Do" and st.button("◀", key=f"left_{task['id']}"):
+                            idx = statuses.index(status)
+                            supabase.table('tasks').update({"status": statuses[idx - 1]}).eq('id', task['id']).execute()
+                            st.rerun()
+                    with col_b:
+                        if st.button("🗑️", key=f"del_{task['id']}"):
+                            supabase.table('tasks').delete().eq('id', task['id']).execute()
+                            st.rerun()
+                    with col_c:
+                        if status != "Done" and st.button("▶", key=f"right_{task['id']}"):
+                            idx = statuses.index(status)
+                            supabase.table('tasks').update({"status": statuses[idx + 1]}).eq('id', task['id']).execute()
+                            st.rerun()
 
 # Einkaufsliste mit Supabase
 def shopping_list():
