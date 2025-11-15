@@ -813,7 +813,165 @@ def weekly_schedule():
     calendar_html += '</div>'
     
     # Kalender anzeigen
-    st.markdown(calendar_html, unsafe_allow_html=True)
+    st.components.v1.html(f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {{
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            background: transparent;
+            padding: 20px;
+        }}
+        
+        .calendar-grid {{
+            display: grid;
+            grid-template-columns: 70px repeat(7, 1fr);
+            gap: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 3px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            overflow: hidden;
+        }}
+        
+        .calendar-header {{
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            padding: 20px 10px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.95em;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.3);
+            letter-spacing: 0.5px;
+        }}
+        
+        .calendar-header.today-header {{
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 2s ease-in-out infinite;
+        }}
+        
+        @keyframes pulse {{
+            0%, 100% {{ transform: scale(1); }}
+            50% {{ transform: scale(1.05); }}
+        }}
+        
+        .time-label {{
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #667eea;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }}
+        
+        .calendar-cell {{
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            min-height: 80px;
+            padding: 6px;
+            position: relative;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }}
+        
+        .calendar-cell:hover {{
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }}
+        
+        .calendar-cell.today {{
+            background: linear-gradient(135deg, rgba(227, 242, 253, 0.9), rgba(187, 222, 251, 0.9));
+            border: 2px solid #2196F3;
+            box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+        }}
+        
+        .event-block {{
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        .event-block::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 12px;
+        }}
+        
+        .event-block:hover::before {{
+            opacity: 1;
+        }}
+        
+        .event-block:hover {{
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+        }}
+        
+        .event-time {{
+            font-weight: 700;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }}
+        
+        .event-time::before {{
+            content: '⏰';
+            font-size: 1.1em;
+        }}
+        
+        .event-title {{
+            font-weight: 600;
+            margin-top: 4px;
+            font-size: 1em;
+            line-height: 1.3;
+        }}
+        
+        .event-person {{
+            font-size: 0.85em;
+            opacity: 0.9;
+            margin-top: 4px;
+            font-weight: 500;
+        }}
+        </style>
+    </head>
+    <body>
+        {calendar_html}
+    </body>
+    </html>
+    """, height=2000, scrolling=True)
     
     st.divider()
     
