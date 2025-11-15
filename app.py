@@ -763,22 +763,26 @@ def vacation_planning():
                 </div>
                 """, unsafe_allow_html=True)
 
-COLORS = {
-    "Freizeit": "#ff8c00",
-    "Schule": "#2196F3",
-    "Arbeit": "#4CAF50",
-    "Sonstiges": "#9C27B0"
-}
-
 import streamlit as st
 from datetime import datetime, timedelta
 
 # ====================================================================
 # !!! WICHTIG: DIESE PLATZHALTER MÜSSEN SIE ERSETZEN !!!
-# Fügen Sie hier IHR initialisiertes Supabase-Client-Objekt ein.
-# from supabase_client import supabase # Beispiel
 #
-# Fügen Sie hier IHR COLORS-Dictionary ein. Beispiel:
+# Beispiel für den Supabase-Client (passen Sie dies an Ihre Initialisierung an)
+# from supabase_client import supabase # ODER:
+# from supabase import create_client
+# SUPABASE_URL = st.secrets["SUPABASE_URL"]
+# SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+# supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+#
+# HIER MUSS IHR TATSÄCHLICHER SUPABASE-CLIENT EINGEFÜGT WERDEN
+#
+# Wenn Sie den Client NICHT importieren können, fügen Sie hier einen Platzhalter ein:
+# supabase = None # Dies führt zu einem Fehler, wenn es versucht wird aufzurufen!
+
+
+# Fügen Sie hier IHR COLORS-Dictionary ein.
 COLORS = {
     'Arzt': '#1E90FF', 
     'Schule': '#3CB371', 
@@ -904,7 +908,9 @@ def weekly_schedule():
         with col1:
             event_title = st.text_input("📝 Titel", key="event_title")
             person = st.text_input("👤 Person", key="event_person")
-            event_category = st.selectbox("🏷️ Kategorie", list(COLORS.keys()), key="event_cat")
+            # Sicherstellen, dass COLORS existiert
+            category_options = list(COLORS.keys()) if 'COLORS' in globals() else ["Kategorie 1", "Kategorie 2"]
+            event_category = st.selectbox("🏷️ Kategorie", category_options, key="event_cat")
         with col2:
             event_date = st.date_input("📅 Datum", key="event_date", value=datetime.now().date())
             start_time = st.time_input("🕐 Von", key="event_start", value=datetime.now().time())
@@ -924,7 +930,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # --- 3. DATEN LADEN & DATUMSFILTER ---
+    # --- 3. DATEN LADEN & DATUMSFILTER (KORRIGIERT) ---
     today = datetime.now().date()
         
     week_offset = st.session_state.get('week_offset', 0)
@@ -936,26 +942,34 @@ def weekly_schedule():
     events = []
     
     try:
-        # Laden der echten Events aus Supabase (7 Tage)
-        # response = supabase.table('schedule_events')\
-        #     .select('*')\
-        #     .eq('family_id', st.session_state.family_id)\
-        #     .gte('event_date', str(week_start))\
-        #     .lte('event_date', str(week_end))\
-        #     .order('event_date')\
-        #     .order('start_time')\
-        #     .execute()
-        
-        # events = response.data if response.data else [] 
-        
-        # --- Simuliere leere Events, falls supabase fehlt ---
-        events = []
+        # Prüfen, ob die 'supabase'-Variable überhaupt existiert
         if 'supabase' not in globals():
-             st.warning("⚠️ Der Supabase-Client ist nicht definiert. Es werden keine Events geladen. Bitte Platzhalter ersetzen.")
-        # --- Ende Simulation ---
-
+            st.error("❌ Kritischer Fehler: Supabase-Client ('supabase') ist nicht global verfügbar. **Bitte importieren/definieren Sie ihn korrekt am Anfang des Skripts!**")
+            # Dummy-Events für UI-Test (kann später entfernt werden)
+            # events = [{'title': 'Beispieltermin', 'person': 'Dummy', 'category': 'Arzt', 'event_date': str(week_start), 'start_time': '09:00:00', 'end_time': '10:00:00', 'id': 999}]
+            events = [] # Leere Liste, da wir die echten Daten wollen
+            
+        else:
+            # SUPABASE QUERY: Lädt Events NUR für die 7 Tage der aktuellen Woche.
+            # Nutzung von globals()['supabase'] stellt sicher, dass auf die globale Variable zugegriffen wird
+            response = globals()['supabase'].table('schedule_events')\
+                .select('*')\
+                .eq('family_id', st.session_state.family_id)\
+                .gte('event_date', str(week_start))\
+                .lte('event_date', str(week_end))\
+                .order('event_date')\
+                .order('start_time')\
+                .execute()
+            
+            # Überprüfen, ob die Antwort Daten enthält
+            events = response.data if hasattr(response, 'data') and response.data else [] 
+            
+            # Optional: Debug-Ausgabe in der Sidebar
+            # st.sidebar.info(f"Loaded {len(events)} events for {week_start} to {week_end}.")
+            
     except Exception as e:
-        st.error(f"❌ Fehler beim Laden der Termine: {str(e)}")
+        # Fängt allgemeine Verbindungs- oder Abfragefehler ab
+        st.error(f"❌ Fehler beim Ausführen der Supabase-Abfrage: {str(e)}. (Überprüfen Sie Tabellennamen, Family ID und Berechtigungen)")
         events = []
 
     
