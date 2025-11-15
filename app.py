@@ -763,23 +763,6 @@ def vacation_planning():
                 </div>
                 """, unsafe_allow_html=True)
 
-# Um die Funktion auszuführen, müssten Sie sie in Ihrer Streamlit-Anwendung aufrufen
-# vacation_planning()
-
-import streamlit as st
-from datetime import datetime, timedelta
-
-# Importe wie in Ihrer Umgebung erwartet (angenommen)
-# from supabase_client import supabase
-# from your_config import COLORS 
-
-# ANNAHME: COLORS ist ein Dictionary mit {Kategorie: Farbcode}
-COLORS = {
-    "Freizeit": "#ff8c00", # Dunkleres Orange
-    "Schule": "#2196F3",   # Blau
-    "Arbeit": "#4CAF50",   # Grün
-    "Sonstiges": "#9C27B0" # Lila
-}
 import streamlit as st
 from datetime import datetime, timedelta
 
@@ -798,7 +781,7 @@ COLORS = {
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # --- 1. GLOBALE CSS-KORREKTUR: Entferne aggressive Selektoren, um leere Boxen zu beseitigen ---
+    # --- 1. GLOBALE CSS-KORREKTUR: Entferne aggressive Selektoren und fixe Kontrast ---
     st.markdown("""
     <style>
         /* Allgemeiner App-Hintergrund transparent */
@@ -806,8 +789,7 @@ def weekly_schedule():
             background-color: transparent !important;
         }
 
-        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Container */
-        /* WICHTIG: .stBlock, .stBlock div[data-testid="stVerticalBlock"] etc. wurden entfernt! */
+        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Container (KEIN .stBlock mehr!) */
         .stExpander, 
         .stMultiSelect, 
         .stSelectbox, 
@@ -815,8 +797,7 @@ def weekly_schedule():
         .stTextArea, 
         .stDateInput, 
         .stTimeInput,
-        div[data-testid="stForm"], /* Form-Container */
-        div[data-testid="stForm"] > div:first-child > div:first-child /* Innerer Form Container */
+        div[data-testid="stForm"] 
         {
             /* Glossy/Acryl-Effekt */
             background: rgba(255, 255, 255, 0.08) !important;
@@ -829,7 +810,7 @@ def weekly_schedule():
             color: #f3f4f6;
         }
         
-        /* Die inneren Input-Felder selbst anpassen, da sie sonst weiß bleiben */
+        /* Eingabefelder selbst im inneren Expander */
         .stTextInput > div > div > input,
         .stSelectbox > div > div,
         .stTextArea > div > textarea,
@@ -863,10 +844,9 @@ def weekly_schedule():
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
     
-    # Neuen Termin hinzufügen - WICHTIG: st.expander ist der äußere Container, der nun mit CSS .stExpander gestylt wird.
+    # Neuer Termin hinzufügen (unverändert)
     st.markdown('<div class="create-card">', unsafe_allow_html=True)
     with st.expander("✨ **Neuen Termin erstellen**", expanded=False):
-        # Der Inhalt des Expanders verwendet nun die allgemeinen st... Widgets
         col1, col2 = st.columns(2)
         with col1:
             event_title = st.text_input("📝 Titel", key="event_title")
@@ -887,7 +867,7 @@ def weekly_schedule():
                 st.rerun() 
             except Exception as e:
                 st.error(f"❌ Fehler: {str(e)}")
-    st.markdown('</div>', unsafe_allow_html=True) # Schließt create-card
+    st.markdown('</div>', unsafe_allow_html=True) 
     
     st.divider()
     
@@ -897,15 +877,24 @@ def weekly_schedule():
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
     
     try:
-        # SUPABASE-FUNKTION BEIBEHALTEN
-        # ... Supabase Select Logik ...
-        events = [] # Anzunehmen, dass hier die geladenen Events stehen
+        # SUPABASE-FUNKTION BEIBEHALTEN (Bitte sicherstellen, dass diese Events liefert)
+        # response = supabase.table('schedule_events').select('*')...
+        
+        # PLATZHALTER FÜR TESTZWECKE (falls Supabase-Anbindung fehlt)
+        # HINWEIS: Bitte diese Zeilen entfernen, sobald Ihre Supabase-Anbindung funktioniert.
+        events = [
+            {'id': 1, 'event_date': str(week_start + timedelta(days=5)), 'start_time': '14:00:00', 'end_time': '16:00:00', 'title': 'Mathe Nachhilfe', 'person': 'Tomek', 'category': 'Schule', 'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'},
+            {'id': 2, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '13:00:00', 'end_time': '18:10:00', 'title': 'Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': ''}, 
+            {'id': 3, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '01:00:00', 'end_time': '17:00:00', 'title': 'Harry Potter Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': 'Harry Potter Vorstellung im Rhein Center'},
+        ]
     except Exception as e:
         st.error(f"❌ Fehler beim Laden: {str(e)}")
         events = []
     
-    # Wochennavigation (wird durch das allgemeine .stBlock/Div-Styling jetzt korrigiert)
+    # Wochennavigation (unverändert)
     # ...
+    
+    st.divider()
     
     # Filter
     all_persons = list(set([e.get('person', '') for e in events if e.get('person')]))
@@ -917,7 +906,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # Kalender Grid (HTML/CSS wird im iframe separat verwaltet und ist bereits ok)
+    # Kalender Grid (unverändert)
     # ... st.components.v1.html Logik ...
 
     # Event-Löschung behandeln (unverändert)
@@ -925,21 +914,21 @@ def weekly_schedule():
     
     st.divider()
     
-    # --- 2. Detail-Liste Titel ---
+    # --- 2. KORRIGIERTER DETAIL-LISTE TITEL (Asterisken entfernt) ---
     st.markdown("""
     <h2 style="font-size: 1.8em; font-weight: 800; margin-bottom: 25px; 
               background: linear-gradient(135deg, #667eea, #764ba2); /* Gradient-Farben */
               -webkit-background-clip: text; 
               -webkit-text-fill-color: transparent; 
               text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);">
-        📋 **Alle Termine dieser Woche**
+        📋 Alle Termine dieser Woche
     </h2>
     """, unsafe_allow_html=True)
     
     week_events = [
         e for e in events
         if str(week_start) <= e.get('event_date', '') <= str(week_start + timedelta(days=6))
-        # and (not filter_person or e.get('person') in filter_person)
+        and (not filter_person or e.get('person') in filter_person)
     ]
     
     if week_events:
@@ -955,9 +944,9 @@ def weekly_schedule():
                 description_content = event.get('description', '')
                 description_safe = description_content.replace('<', '&lt;').replace('>', '&gt;')
                 
-                # --- WICHTIG: Detail-Listen-Karten-KORREKTUR (Heller Hintergrund im Bild 3 entfernt) ---
+                # --- KORREKTUR: Hintergrund des Event-Containers (Dunkler, behebt Helligkeits- & </p>-Fehler) ---
                 st.markdown(f"""
-                <div style="background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(248, 250, 252, 0.02)); /* Sehr dunkler/transparenter Hintergrund */
+                <div style="background: linear-gradient(145deg, rgba(20, 20, 30, 0.7), rgba(30, 30, 50, 0.7)); /* Sehr dunkler, glasiger Hintergrund */
                             backdrop-filter: blur(20px);
                             border-radius: 24px;
                             padding: 24px;
@@ -1005,7 +994,7 @@ def weekly_schedule():
                         </span>
                     </div>
                     
-                    <p style="margin-top: 14px; color: #d1d5db; line-height: 1.7; font-size: 1em;">
+                    <p style="margin-top: 14px; color: #d1d5db; line-height: 1.7;">
                         {description_safe if description_safe else '<span style="color: #9ca3af; font-style: italic;">Keine Beschreibung angegeben.</span>'}
                     </p>
                 </div>
@@ -1031,6 +1020,7 @@ def weekly_schedule():
             <p style="color: #a1a1aa; margin-top: 10px;">Erstelle einen neuen Termin um loszulegen!</p>
         </div>
         """, unsafe_allow_html=True)
+
 # Hauptanwendung
 def main():
     if not st.session_state.authenticated:
