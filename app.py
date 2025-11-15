@@ -763,6 +763,7 @@ def vacation_planning():
                 </div>
                 """, unsafe_allow_html=True)
 
+
 COLORS = {
     "Freizeit": "#ff8c00", # Dunkleres Orange
     "Schule": "#2196F3",   # Blau
@@ -773,36 +774,26 @@ COLORS = {
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # --- 1. GLOBALE CSS-KORREKTUR: Fix für alle Boxen und Kontrast ---
+    # --- 1. GLOBALE CSS-KORREKTUR: Erzwinge Dunkelheit und Transparenz ---
     st.markdown("""
     <style>
-        /* Allgemeiner App-Hintergrund transparent */
+        /* Erzwinge allgemeinen App-Hintergrund transparent und dunkel (falls nicht schon passiert) */
         .stApp {
             background-color: transparent !important;
         }
 
-        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Container */
-        .stExpander, 
-        .stMultiSelect, 
-        .stSelectbox, 
-        .stTextInput, 
-        .stTextArea, 
-        .stDateInput, 
-        .stTimeInput,
-        div[data-testid="stForm"],
-        div[data-testid="stHorizontalBlock"] > div /* Navigation Container */
-        {
-            /* Glossy/Acryl-Effekt */
-            background: rgba(255, 255, 255, 0.08) !important;
-            backdrop-filter: blur(15px) saturate(180%);
-            -webkit-backdrop-filter: blur(15px) saturate(180%);
-            border-radius: 18px !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            padding: 15px;
-            color: #f3f4f6;
+        /* HARD FIX: Verstecke alle unsichtbaren Streamlit-Blöcke (die als unnötige Boxen erscheinen) */
+        /* Dies betrifft die Linien und leere Container, die durch st.markdown erzeugt werden */
+        div[data-testid^="stHorizontalBlock"],
+        div[data-testid^="stVerticalBlock"],
+        div[data-testid="stBlock"] {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
-        
+
         /* KORREKTUR: st.divider() Linien sollen keine Boxen sein */
         .stDivider {
             background: transparent !important;
@@ -815,19 +806,29 @@ def weekly_schedule():
             border-top: 2px solid rgba(255, 255, 255, 0.15) !important;
             height: 0 !important;
         }
-
-        /* Eingabefelder selbst */
-        .stTextInput > div > div > input,
-        .stSelectbox > div > div,
-        .stTextArea > div > textarea,
-        .stDateInput > div > div > input,
-        .stTimeInput > div > div > input {
-            background: rgba(255, 255, 255, 0.15) !important;
-            border: 1px solid rgba(255, 255, 255, 0.4) !important;
-            color: white !important;
-            border-radius: 12px !important;
+        
+        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Widgets */
+        .stExpander, 
+        .stMultiSelect, 
+        .stSelectbox, 
+        .stTextInput, 
+        .stTextArea, 
+        .stDateInput, 
+        .stTimeInput,
+        div[data-testid="stForm"],
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) /* Navigation Mitte Container */
+        {
+            /* Glossy/Acryl-Effekt */
+            background: rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border-radius: 18px !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            padding: 15px;
+            color: #f3f4f6;
         }
-
+        
         /* Spezielles Design für die Create-Card (Expander-Bereich) */
         .create-card {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15)) !important;
@@ -840,15 +841,7 @@ def weekly_schedule():
              box-shadow: none !important;
              border: none !important;
         }
-        
-        /* KORREKTUR: Erzwinge dunklen Hintergrund für alle Streamlit-Blöcke innerhalb der Haupt-App (außer Widgets) */
-        /* Dies sollte die leeren Divs, die als "Boxen" erscheinen, eliminieren oder abdunkeln */
-        div[data-testid^="stHorizontalBlock"],
-        div[data-testid^="stVerticalBlock"] {
-            background-color: transparent !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
+
         
     </style>
     """, unsafe_allow_html=True)
@@ -891,7 +884,6 @@ def weekly_schedule():
     try:
         today = datetime.strptime('2025-11-15', '%Y-%m-%d').date() 
     except ValueError:
-        # Fallback, falls das Datum heute ist
         pass
 
     week_offset_raw = st.session_state.get('week_offset', 0)
@@ -989,7 +981,7 @@ def weekly_schedule():
                 event_id = event['id']
                 cell_content += f'''
                 <div class="event-block" 
-                      style="background: linear-gradient(145deg, {color}30, {color}15); /* etwas dunkler */
+                      style="background: linear-gradient(145deg, {color}30, {color}15); 
                             border-left: 5px solid {color};
                             box-shadow: 0 8px 24px {color}30, inset 0 1px 0 rgba(255,255,255,0.2);" 
                       onclick="deleteEvent('{event_id}')"
@@ -1080,7 +1072,7 @@ def weekly_schedule():
         }}
         
         .calendar-cell {{
-            background: rgba(20, 20, 30, 0.8); /* KORREKTUR: Dunkle Zellen für besseren Kontrast */
+            background: rgba(10, 10, 15, 0.9); /* HARD FIX: Erzwinge sehr dunkle Zelle */
             backdrop-filter: blur(15px) saturate(180%);
             -webkit-backdrop-filter: blur(15px) saturate(180%);
             min-height: 90px;
@@ -1093,7 +1085,7 @@ def weekly_schedule():
         }}
         
         .calendar-cell.today {{
-            background: rgba(33, 150, 243, 0.15); /* Etwas dunkler als 0.1 */
+            background: rgba(33, 150, 243, 0.15); 
             border: 3px solid #2196F399; 
         }}
         
@@ -1170,15 +1162,13 @@ def weekly_schedule():
                 description_content = event.get('description', '')
                 description_safe = description_content.replace('<', '&lt;').replace('>', '&gt;')
                 
-                # --- FINALE KORREKTUR DER DETAILKARTE (Dunkel, </p> Problem gelöst) ---
+                # --- KORREKTUR DER DETAILKARTE (Sehr dunkel und vereinfacht, um Fehler zu vermeiden) ---
                 st.markdown(f"""
-                <div style="background: linear-gradient(145deg, rgba(10, 10, 20, 0.9), rgba(20, 20, 40, 0.9)); /* Stark dunkler Hintergrund */
-                            backdrop-filter: blur(20px);
+                <div style="background: rgba(10, 10, 20, 1); /* HARD FIX: KEINE Transparenz mehr */
                             border-radius: 24px;
                             padding: 24px;
                             margin-bottom: 20px;
-                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5), 
-                                        inset 0 1px 0 rgba(255, 255, 255, 0.1); 
+                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9); /* Tief dunkler Schatten */
                             border-left: 6px solid {color};
                             border: 1.5px solid rgba(255, 255, 255, 0.1); 
                             transition: all 0.4s ease;">
@@ -1223,10 +1213,10 @@ def weekly_schedule():
                     <p style="margin-top: 14px; color: #d1d5db; line-height: 1.7; font-size: 1em;">
                         {description_safe if description_safe else '<span style="color: #9ca3af; font-style: italic;">Keine Beschreibung angegeben.</span>'}
                     </p>
-                    
-                    </div>
+                </div>
                 """, unsafe_allow_html=True)
             with col2:
+                # Der Papierkorb-Button
                 st.markdown("<br><br>", unsafe_allow_html=True) 
                 if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True, type="secondary"):
                     # SUPABASE-FUNKTION BEIBEHALTEN
@@ -1234,7 +1224,7 @@ def weekly_schedule():
                     st.success("✅ Gelöscht!")
                     st.rerun() 
     else:
-        # Kein Termine-Container
+        # Kein Termine-Container (unverändert)
         st.markdown("""
         <div style="text-align: center; padding: 80px 20px;
                     background: linear-gradient(145deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
@@ -1247,6 +1237,7 @@ def weekly_schedule():
             <p style="color: #a1a1aa; margin-top: 10px;">Erstelle einen neuen Termin um loszulegen!</p>
         </div>
         """, unsafe_allow_html=True)
+
 # Hauptanwendung
 def main():
     if not st.session_state.authenticated:
