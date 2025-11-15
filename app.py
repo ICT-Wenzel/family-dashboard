@@ -209,17 +209,62 @@ def login_page():
                         st.balloons()
 
 
+import streamlit as st
+# Importieren Sie die neue Komponente
+from streamlit_antd_dnd import dnd_board 
 
-def kanban_board(supabase, COLORS):
-    st.title("📋 Aufgabenverwaltung (Kanban) - Drag & Drop")
+# --- HINWEIS ---
+# Stellen Sie sicher, dass 'supabase' und 'COLORS' 
+# außerhalb dieser Funktion verfügbar sind, so wie in Ihrem Originalcode.
+# 
+# Beispiel für COLORS, falls es nicht global definiert ist:
+# COLORS = {
+#     "Standard": "#CCCCCC", "Arbeit": "#FF5733", "Privat": "#33FF57", 
+#     "Einkaufen": "#3357FF", "Wichtig": "#FF33A1"
+# }
+# ---
+
+def kanban_board():
+    st.title("📋 Aufgabenverwaltung (Kanban)")
     
-    if not st.session_state.family_id:
+    if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet. Bitte kontaktieren Sie Ihren Administrator.")
         return
     
-    # ... (Code zum Hinzufügen neuer Aufgaben bleibt unverändert) ...
+    # --- 1. Neue Aufgabe hinzufügen ---
+    # (Dieser Abschnitt ist unverändert aus Ihrem Code)
+    with st.expander("➕ Neue Aufgabe erstellen"):
+        col1, col2 = st.columns(2)
+        with col1:
+            title = st.text_input("Titel")
+            category = st.selectbox("Kategorie", list(COLORS.keys()))
+            assigned_to = st.text_input("Zugewiesen an")
+        with col2:
+            description = st.text_area("Beschreibung")
+            priority = st.selectbox("Priorität", ["Niedrig", "Mittel", "Hoch"])
+            due_date = st.date_input("Fälligkeitsdatum")
+        
+        if st.button("Aufgabe erstellen"):
+            try:
+                supabase.table('tasks').insert({
+                    "family_id": st.session_state.family_id,
+                    "user_id": st.session_state.user.id,
+                    "title": title,
+                    "description": description,
+                    "category": category,
+                    "priority": priority,
+                    "assigned_to": assigned_to,
+                    "due_date": str(due_date),
+                    "status": "To-Do"
+                }).execute()
+                st.success("✅ Aufgabe erstellt!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Fehler: {str(e)}")
     
-    # 1. Aufgaben laden
+    # --- 2. Aufgaben laden ---
+    # (Dieser Abschnitt ist unverändert)
+    tasks = []
     try:
         response = supabase.table('tasks').select('*').eq('family_id', st.session_state.family_id).order('created_at', desc=True).execute()
         tasks = response.data
@@ -227,73 +272,62 @@ def kanban_board(supabase, COLORS):
         st.error(f"Fehler beim Laden: {str(e)}")
         return
     
-    # 2. Daten für die D&D-Komponente vorbereiten
+    # --- 3. Daten für das D&D-Board vorbereiten (NEU) ---
+    
     statuses = ["To-Do", "In Progress", "Done"]
-    data = []
+    boards_data = [] # Dies wird die Datenstruktur für das D&D-Board
 
-    # Map tasks to the required structure (usually a list of columns/groups)
-    # and format the card content for display.
+    # Original-Status für den Abgleich nach dem Verschieben speichern
+    original_statuses = {str(task['id']): task['status'] for task in tasks}
+
     for status in statuses:
+        # Aufgaben für diese Spalte filtern
         status_tasks = [t for t in tasks if t['status'] == status]
+        
+        # Karten für das dnd_board-Format erstellen
         cards = []
         for task in status_tasks:
-            # Erstellen Sie den Inhalt der Karte. Oft erwartet die Komponente 
-            # entweder einen String oder eine Dictionary für den Karten-Inhalt.
+            # Erstellen Sie den Inhalt der Karte. 
+            # Die dnd_board-Komponente verwendet `title` und `content` (Markdown-fähig).
             card_content = f"""
-            <div style="
-                border-left: 5px solid {COLORS.get(task['category'], '#CCCCCC')};
-                padding: 10px; border-radius: 5px;">
-                <h5 style="margin: 0; color: #333;">{task['title']}</h5>
-                <p style="margin: 5px 0; font-size: 0.9em;">{task.get('description', '')}</p>
-                <small>📌 {task['category']} | 👤 {task.get('assigned_to', 'Niemand')}</small>
-            </div>
+            {task.get('description', '')}
+            <br><small>
+            📌 {task['category']} | 👤 {task.get('assigned_to', 'Niemand')}
+            <br>
+            ⚡ {task['priority']} | 📅 {task.get('due_date', 'N/A')}
+            </small>
             """
             
             cards.append({
-                "id": str(task['id']), # ID muss oft ein String sein
+                "id": str(task['id']), # WICHTIG: ID muss ein String sein
                 "title": task['title'],
                 "content": card_content,
-                # Speichern Sie alle Task-Daten im Payload
-                "payload": task 
+                # Wir können die KATEGORIE-Farbe nicht einfach als Rand setzen,
+                # aber wir können die Titelfarbe leicht anpassen (optional)
+                "style": {"color": COLORS.get(task['category'], "#333333")}
             })
-            
-        data.append({
-            "id": status,
-            "title": f"{status} ({len(status_tasks)})",
-            "cards": cards
-        })
         
-    # 3. Die Drag-and-Drop-Komponente rendern
-    # board_result = dnd_board(data, key="kanban_dnd", container_style={"width": "100%"}) 
-    
-    # Da ich die Komponente nicht ausführen kann, wird die Logik hier 
-    # kommentiert. Sie müssten die Komponente hier einfügen.
+        # Spalten-Definition für das dnd_board
+        boards_data.append({
+            "id": status, # Spalten-ID
+            "title": f"{status} ({len(status_tasks)})", # Spalten-Titel
+            "cards": cards,
+            "style": {
+                "background-color": "#f0f2f6", 
+                "border-radius": "5px", 
+                "padding": "10px", 
+                "min-height": "400px" # Mindesthöhe für D&D-Ziel
+            }
+        })
+
+    # --- 4. Das Drag-and-Drop Board rendern (NEU) ---
     
     st.markdown("---")
-    st.subheader("▶️ Kanban Board")
-    st.info("ℹ️ Hier würde die externe Drag-and-Drop-Komponente (`dnd_board`) eingefügt werden. Das Ergebnis der Verschiebung (z.B. `board_result`) würde die neue Spalte/den neuen Status der Karte enthalten.")
+    st.subheader("Kanban Board (Drag & Drop)")
     
-    # 4. Ergebnis der Verschiebung verarbeiten (Simuliertes Ergebnis)
-    # board_result ist typischerweise die aktualisierte Datenstruktur,
-    # die Sie dann mit der ursprünglichen Struktur vergleichen müssen.
-    
-    # **Beispiel-Logik für die Verarbeitung des Ergebnisses:**
-    # if board_result:
-    #     for new_column in board_result:
-    #         new_status = new_column['id']
-    #         for new_card in new_column['cards']:
-    #             task_id = new_card['id']
-    #             old_task_data = new_card['payload'] # Der ursprünglich gespeicherte Task
-                
-    #             # Prüfen, ob der Status der Aufgabe geändert wurde
-    #             if old_task_data['status'] != new_status:
-    #                 # Datenbank-Update durchführen
-    #                 try:
-    #                     supabase.table('tasks').update({"status": new_status}).eq('id', task_id).execute()
-    #                     st.success(f"✅ Status von '{old_task_data['title']}' auf '{new_status}' aktualisiert!")
-    #                     st.rerun()
-    #                 except Exception as e:
-    #                     st.error(f"Fehler beim Aktualisieren: {str(e)}")
+    # Die Komponente aufrufen. 'result' enthält den *neuen* Zustand nach einer D&D-Aktion.
+    # return_type='dict' ist
+
 # Einkaufsliste mit Supabase
 def shopping_list():
     st.title("🛒 Einkaufsliste")
