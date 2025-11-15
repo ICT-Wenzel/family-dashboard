@@ -773,7 +773,7 @@ COLORS = {
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # --- 1. GLOBALE CSS-KORREKTUR: Entferne unnötige Boxen und fixe Kontrast ---
+    # --- 1. GLOBALE CSS-KORREKTUR: Fix für alle Boxen und Kontrast ---
     st.markdown("""
     <style>
         /* Allgemeiner App-Hintergrund transparent */
@@ -781,7 +781,7 @@ def weekly_schedule():
             background-color: transparent !important;
         }
 
-        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Container (KEIN .stBlock mehr!) */
+        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Container */
         .stExpander, 
         .stMultiSelect, 
         .stSelectbox, 
@@ -803,7 +803,7 @@ def weekly_schedule():
             color: #f3f4f6;
         }
         
-        /* KORREKTUR: st.divider() Linien sollen keine Boxen sein, nur Linien */
+        /* KORREKTUR: st.divider() Linien sollen keine Boxen sein */
         .stDivider {
             background: transparent !important;
             box-shadow: none !important;
@@ -828,12 +828,6 @@ def weekly_schedule():
             border-radius: 12px !important;
         }
 
-        /* Labels heller machen */
-        .stForm label {
-            color: #e5e7eb !important; 
-            font-weight: 600;
-        }
-        
         /* Spezielles Design für die Create-Card (Expander-Bereich) */
         .create-card {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15)) !important;
@@ -846,7 +840,15 @@ def weekly_schedule():
              box-shadow: none !important;
              border: none !important;
         }
-
+        
+        /* KORREKTUR: Erzwinge dunklen Hintergrund für alle Streamlit-Blöcke innerhalb der Haupt-App (außer Widgets) */
+        /* Dies sollte die leeren Divs, die als "Boxen" erscheinen, eliminieren oder abdunkeln */
+        div[data-testid^="stHorizontalBlock"],
+        div[data-testid^="stVerticalBlock"] {
+            background-color: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
         
     </style>
     """, unsafe_allow_html=True)
@@ -879,15 +881,19 @@ def weekly_schedule():
                 st.rerun() 
             except Exception as e:
                 st.error(f"❌ Fehler: {str(e)}")
-    st.markdown('</div>', unsafe_allow_html=True) # Schließt create-card
+    st.markdown('</div>', unsafe_allow_html=True) 
     
     st.divider()
     
     # Termine laden
     today = datetime.now().date()
     # ANNAHME: Samstag, 15.11.2025 ist heute (wie in Ihren Bildern)
-    today = datetime.strptime('2025-11-15', '%Y-%m-%d').date() 
-    
+    try:
+        today = datetime.strptime('2025-11-15', '%Y-%m-%d').date() 
+    except ValueError:
+        # Fallback, falls das Datum heute ist
+        pass
+
     week_offset_raw = st.session_state.get('week_offset', 0)
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
     
@@ -896,7 +902,6 @@ def weekly_schedule():
         # response = supabase.table('schedule_events').select('*')...
         
         # PLATZHALTER FÜR TESTZWECKE 
-        # ACHTUNG: Die Event-Daten müssen Strings sein, wie von Supabase erwartet
         events = [
             {'id': 1, 'event_date': str(week_start + timedelta(days=5)), 'start_time': '14:00:00', 'end_time': '16:00:00', 'title': 'Mathe Nachhilfe', 'person': 'Tomek', 'category': 'Schule', 'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'}, # Samstag (15.11)
             {'id': 2, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '13:00:00', 'end_time': '18:10:00', 'title': 'Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': ''}, # Sonntag (16.11)
@@ -973,7 +978,7 @@ def weekly_schedule():
             
             day_events = [
                 e for e in events 
-                if e.get('event_date') == str(day) # KORREKTUR: Filtert nun korrekt nach dem Tag der Schleife (z.B. 16.11)
+                if e.get('event_date') == str(day) 
                 and (not filter_person or e.get('person') in filter_person)
                 and e.get('start_time', '')[:2] == time_slot[:2]
             ]
@@ -984,7 +989,7 @@ def weekly_schedule():
                 event_id = event['id']
                 cell_content += f'''
                 <div class="event-block" 
-                      style="background: linear-gradient(145deg, {color}20, {color}10);
+                      style="background: linear-gradient(145deg, {color}30, {color}15); /* etwas dunkler */
                             border-left: 5px solid {color};
                             box-shadow: 0 8px 24px {color}30, inset 0 1px 0 rgba(255,255,255,0.2);" 
                       onclick="deleteEvent('{event_id}')"
@@ -993,7 +998,7 @@ def weekly_schedule():
                     <div class="event-title">{event.get('title', 'N/A')}</div>
                     <div class="event-person">👤 {event.get('person', 'N/A')}</div>
                     <div class="delete-hint">
-                        <div style="background: rgba(255, 255, 255, 0.1); padding: 5px 10px; border-radius: 8px; margin-top: 5px; font-weight: 600;">🗑️ Löschen</div>
+                        <div style="background: rgba(255, 255, 255, 0.15); padding: 5px 10px; border-radius: 8px; margin-top: 5px; font-weight: 600;">🗑️ Löschen</div>
                     </div>
                 </div>
                 '''
@@ -1002,7 +1007,7 @@ def weekly_schedule():
     
     calendar_html += '</div>'
     
-    # --- WICHTIG: Komponenten-HTML für das GRID (mit CSS) ---
+    # --- WICHTIG: Komponenten-HTML für das GRID (mit korrigiertem CSS) ---
     st.components.v1.html(f"""
     <!DOCTYPE html>
     <html>
@@ -1011,7 +1016,6 @@ def weekly_schedule():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
-        /* ... CSS für das Grid (Unverändert, nur um Redundanz zu vermeiden) ... */
         * {{
             margin: 0;
             padding: 0;
@@ -1076,7 +1080,7 @@ def weekly_schedule():
         }}
         
         .calendar-cell {{
-            background: rgba(255, 255, 255, 0.05); 
+            background: rgba(20, 20, 30, 0.8); /* KORREKTUR: Dunkle Zellen für besseren Kontrast */
             backdrop-filter: blur(15px) saturate(180%);
             -webkit-backdrop-filter: blur(15px) saturate(180%);
             min-height: 90px;
@@ -1089,7 +1093,7 @@ def weekly_schedule():
         }}
         
         .calendar-cell.today {{
-            background: rgba(33, 150, 243, 0.1); 
+            background: rgba(33, 150, 243, 0.15); /* Etwas dunkler als 0.1 */
             border: 3px solid #2196F399; 
         }}
         
@@ -1100,7 +1104,7 @@ def weekly_schedule():
             font-size: 0.85em;
             cursor: pointer;
             color: white; 
-            position: relative; /* Für Löschen-Hint */
+            position: relative; 
         }}
         </style>
     </head>
@@ -1168,7 +1172,7 @@ def weekly_schedule():
                 
                 # --- FINALE KORREKTUR DER DETAILKARTE (Dunkel, </p> Problem gelöst) ---
                 st.markdown(f"""
-                <div style="background: linear-gradient(145deg, rgba(10, 10, 20, 0.7), rgba(20, 20, 40, 0.7)); /* Sehr dunkler, glasiger Hintergrund */
+                <div style="background: linear-gradient(145deg, rgba(10, 10, 20, 0.9), rgba(20, 20, 40, 0.9)); /* Stark dunkler Hintergrund */
                             backdrop-filter: blur(20px);
                             border-radius: 24px;
                             padding: 24px;
@@ -1219,7 +1223,8 @@ def weekly_schedule():
                     <p style="margin-top: 14px; color: #d1d5db; line-height: 1.7; font-size: 1em;">
                         {description_safe if description_safe else '<span style="color: #9ca3af; font-style: italic;">Keine Beschreibung angegeben.</span>'}
                     </p>
-                </div>
+                    
+                    </div>
                 """, unsafe_allow_html=True)
             with col2:
                 st.markdown("<br><br>", unsafe_allow_html=True) 
@@ -1242,7 +1247,6 @@ def weekly_schedule():
             <p style="color: #a1a1aa; margin-top: 10px;">Erstelle einen neuen Termin um loszulegen!</p>
         </div>
         """, unsafe_allow_html=True)
-
 # Hauptanwendung
 def main():
     if not st.session_state.authenticated:
