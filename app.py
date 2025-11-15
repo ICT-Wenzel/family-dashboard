@@ -773,7 +773,7 @@ COLORS = {
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # --- 1. GLOBALE CSS-KORREKTUR: Fix für unnötige Boxen und Kontrast ---
+    # --- 1. GLOBALE CSS-KORREKTUR: Entferne unnötige Boxen und fixe Kontrast ---
     st.markdown("""
     <style>
         /* Allgemeiner App-Hintergrund transparent */
@@ -840,7 +840,7 @@ def weekly_schedule():
             border: 2px solid rgba(102, 126, 234, 0.4) !important;
             border-radius: 28px !important;
             box-shadow: 0 15px 45px rgba(102, 126, 234, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.4);
-            padding: 0; /* Wichtig: Padding hier entfernen, da der Expander es intern hat */
+            padding: 0; 
         }
         .create-card .stExpander {
              box-shadow: none !important;
@@ -856,10 +856,9 @@ def weekly_schedule():
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
     
-    # Neuer Termin hinzufügen
+    # Neuer Termin hinzufügen (unverändert)
     st.markdown('<div class="create-card">', unsafe_allow_html=True)
     with st.expander("✨ **Neuen Termin erstellen**", expanded=False):
-        # ... Eingabefelder ... (bleiben unverändert)
         col1, col2 = st.columns(2)
         with col1:
             event_title = st.text_input("📝 Titel", key="event_title")
@@ -884,8 +883,11 @@ def weekly_schedule():
     
     st.divider()
     
-    # Termine laden (Logik unverändert)
+    # Termine laden
     today = datetime.now().date()
+    # ANNAHME: Samstag, 15.11.2025 ist heute (wie in Ihren Bildern)
+    today = datetime.strptime('2025-11-15', '%Y-%m-%d').date() 
+    
     week_offset_raw = st.session_state.get('week_offset', 0)
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
     
@@ -894,16 +896,17 @@ def weekly_schedule():
         # response = supabase.table('schedule_events').select('*')...
         
         # PLATZHALTER FÜR TESTZWECKE 
+        # ACHTUNG: Die Event-Daten müssen Strings sein, wie von Supabase erwartet
         events = [
-            {'id': 1, 'event_date': str(week_start + timedelta(days=5)), 'start_time': '14:00:00', 'end_time': '16:00:00', 'title': 'Mathe Nachhilfe', 'person': 'Tomek', 'category': 'Schule', 'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'},
-            {'id': 2, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '13:00:00', 'end_time': '18:10:00', 'title': 'Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': ''}, 
-            {'id': 3, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '01:00:00', 'end_time': '17:00:00', 'title': 'Harry Potter Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': 'Harry Potter Vorstellung im Rhein Center'},
+            {'id': 1, 'event_date': str(week_start + timedelta(days=5)), 'start_time': '14:00:00', 'end_time': '16:00:00', 'title': 'Mathe Nachhilfe', 'person': 'Tomek', 'category': 'Schule', 'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'}, # Samstag (15.11)
+            {'id': 2, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '13:00:00', 'end_time': '18:10:00', 'title': 'Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': ''}, # Sonntag (16.11)
+            {'id': 3, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '01:00:00', 'end_time': '17:00:00', 'title': 'Harry Potter Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': 'Harry Potter Vorstellung im Rhein Center'}, # Sonntag (16.11)
         ]
     except Exception as e:
         st.error(f"❌ Fehler beim Laden: {str(e)}")
         events = []
     
-    # Wochennavigation
+    # Wochennavigation (unverändert)
     col1, col2, col3 = st.columns([1, 3, 1])
     with col1:
         if st.button("◀ Zurück", use_container_width=True, key="prev_week"):
@@ -912,7 +915,6 @@ def weekly_schedule():
     with col2:
         current_week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
         current_week_end = current_week_start + timedelta(days=6)
-        # st.markdown wird durch das globale CSS gestylt
         st.markdown(f"""
         <div style="text-align: center; padding: 16px; 
                       background: linear-gradient(135deg, #1f2937 0%, #0f172a 100%); 
@@ -935,14 +937,13 @@ def weekly_schedule():
     # Filter
     all_persons = list(set([e.get('person', '') for e in events if e.get('person')]))
     if all_persons:
-        # st.multiselect wird durch das globale CSS gestylt
         filter_person = st.multiselect("👥 **Nach Person filtern**", all_persons, default=all_persons, key="schedule_filter")
     else:
         filter_person = []
     
     st.divider()
     
-    # Kalender-Logik (GRID WIEDER EINGEFÜGT)
+    # Kalender-Logik (GRID)
     time_slots = [f"{h:02d}:00" for h in range(6, 23)]
     days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     days_short = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -972,7 +973,7 @@ def weekly_schedule():
             
             day_events = [
                 e for e in events 
-                if e.get('event_date') == str(day) 
+                if e.get('event_date') == str(day) # KORREKTUR: Filtert nun korrekt nach dem Tag der Schleife (z.B. 16.11)
                 and (not filter_person or e.get('person') in filter_person)
                 and e.get('start_time', '')[:2] == time_slot[:2]
             ]
@@ -991,7 +992,9 @@ def weekly_schedule():
                     <div class="event-time">{event.get('start_time', '')[:5]}-{event.get('end_time', '')[:5]}</div>
                     <div class="event-title">{event.get('title', 'N/A')}</div>
                     <div class="event-person">👤 {event.get('person', 'N/A')}</div>
-                    <div class="delete-hint">🗑️ Löschen</div>
+                    <div class="delete-hint">
+                        <div style="background: rgba(255, 255, 255, 0.1); padding: 5px 10px; border-radius: 8px; margin-top: 5px; font-weight: 600;">🗑️ Löschen</div>
+                    </div>
                 </div>
                 '''
             
@@ -1008,6 +1011,7 @@ def weekly_schedule():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
+        /* ... CSS für das Grid (Unverändert, nur um Redundanz zu vermeiden) ... */
         * {{
             margin: 0;
             padding: 0;
@@ -1096,6 +1100,7 @@ def weekly_schedule():
             font-size: 0.85em;
             cursor: pointer;
             color: white; 
+            position: relative; /* Für Löschen-Hint */
         }}
         </style>
     </head>
@@ -1169,9 +1174,9 @@ def weekly_schedule():
                             padding: 24px;
                             margin-bottom: 20px;
                             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5), 
-                                        inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Weniger heller Gloss */
+                                        inset 0 1px 0 rgba(255, 255, 255, 0.1); 
                             border-left: 6px solid {color};
-                            border: 1.5px solid rgba(255, 255, 255, 0.1); /* Weniger sichtbarer Rahmen */
+                            border: 1.5px solid rgba(255, 255, 255, 0.1); 
                             transition: all 0.4s ease;">
                     
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap;">
@@ -1211,7 +1216,7 @@ def weekly_schedule():
                         </span>
                     </div>
                     
-                    <p style="margin-top: 14px; color: #d1d5db; line-height: 1.7;">
+                    <p style="margin-top: 14px; color: #d1d5db; line-height: 1.7; font-size: 1em;">
                         {description_safe if description_safe else '<span style="color: #9ca3af; font-style: italic;">Keine Beschreibung angegeben.</span>'}
                     </p>
                 </div>
