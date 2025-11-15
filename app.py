@@ -296,13 +296,46 @@ def kanban_board():
                             supabase.table('tasks').update({"status": statuses[idx + 1]}).eq('id', task['id']).execute()
                             st.rerun()
 
-import streamlit as st
-# from supabase import create_client, Client # (Falls Sie dies im Hauptskript benötigen)
-
-# --- CSS STYLES FÜR DEN GLOSSY-LOOK ---
+# --- CSS STYLES FÜR DEN GLOSSY-LOOK (FARBLICH KORRIGIERT) ---
 def inject_glossy_shopping_css():
     st.markdown("""
     <style>
+        /* ---------------------------------------------------- */
+        /* NEU: SEITENLEISTEN-ANPASSUNG (Sidebar Navigation) */
+        /* ---------------------------------------------------- */
+        /* Allgemeiner Hintergrund für Sidebar-Widgets */
+        div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div:nth-child(2) > div:nth-child(1) div[data-testid="stVerticalBlock"] > div {
+            /* Hintergrund für die Navigationsblöcke */
+            background: rgba(255, 255, 255, 0.05); 
+            border-radius: 14px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Navigations-Links (z.B. Kanban, Einkaufsliste) */
+        .stSidebar .stButton button {
+            /* Standardzustand der Navigationslinks */
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #f3f4f6 !important;
+            box-shadow: none !important;
+        }
+        
+        /* Aktiver Navigationslink (Das grässliche Grün wird ersetzt) */
+        /* Target the specific background used in the image for the active tab (e.g., Einkaufsliste) */
+        /* Hier wird versucht, das Element zu finden, das das grüne Rechteck erzeugt hat */
+        div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div:nth-child(2) div[data-testid="stVerticalBlock"] > div:nth-child(2) .stButton button {
+            /* Das grässliche Grün wird durch ein tiefes, sattes Blau ersetzt */
+            background: linear-gradient(145deg, rgba(80, 100, 200, 0.8), rgba(40, 60, 150, 0.7)) !important;
+            border: 1px solid rgba(120, 150, 250, 0.5) !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+        }
+
+
+        /* ---------------------------------------------------- */
+        /* KORREKTUR DER HAUPT-FARBEN (Listen-Elemente) */
+        /* ---------------------------------------------------- */
+
         /* Allgemeine Transparenz für Streamlit-Blöcke */
         div[data-testid^="stHorizontalBlock"],
         div[data-testid^="stVerticalBlock"],
@@ -314,9 +347,9 @@ def inject_glossy_shopping_css():
             margin: 0 !important;
         }
 
-        /* Haupt-Container für Listen-Erstellung */
+        /* Haupt-Container für Listen-Erstellung (Weicher Blau/Violett-Verlauf) */
         .list-creator-card {
-            background: linear-gradient(135deg, rgba(70, 130, 180, 0.15), rgba(0, 191, 255, 0.1)); /* SteelBlue/DeepSkyBlue */
+            background: linear-gradient(135deg, rgba(70, 130, 180, 0.15), rgba(138, 43, 226, 0.1)); /* SteelBlue/BlueViolet */
             border: 2px solid rgba(70, 130, 180, 0.5);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -338,7 +371,7 @@ def inject_glossy_shopping_css():
             color: #f3f4f6;
         }
 
-        /* Button Glossy Style */
+        /* Button Glossy Style (Blau-Violett) */
         .stButton button {
             background: linear-gradient(145deg, rgba(120, 150, 250, 0.8), rgba(80, 100, 200, 0.7));
             color: white !important;
@@ -347,54 +380,41 @@ def inject_glossy_shopping_css():
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
             transition: all 0.3s ease;
         }
-        .stButton button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-        }
 
-        /* Item Liste Container */
-        .item-row {
-            padding: 8px 15px;
-            margin: 5px 0;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s ease;
-        }
-        .item-row:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* Checkbox-Farbe verbessern */
-        .stCheckbox > label {
-            color: #f3f4f6 !important; 
-            font-weight: 500;
-        }
-        .stCheckbox [data-testid="stDecoration"] {
-            border-radius: 4px;
-            border: 2px solid rgba(255, 255, 255, 0.5) !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-        }
-        .st-ag { /* Checkbox im Checked-Zustand */
-             background-color: #3CB371 !important; 
-             border-color: #3CB371 !important; 
-        }
-
-        /* Trash Button Style */
+        /* Trash Button Style (Dunkles Rot/Tomato) */
         .trash-button button {
-            background: rgba(255, 0, 0, 0.15) !important;
-            border: 1px solid rgba(255, 0, 0, 0.5) !important;
+            background: rgba(255, 99, 71, 0.15) !important; /* Tomato */
+            border: 1px solid rgba(255, 99, 71, 0.5) !important;
             box-shadow: none !important;
             color: #FF6347 !important; 
             padding: 5px 10px;
         }
         .trash-button button:hover {
-            background: rgba(255, 0, 0, 0.3) !important;
+            background: rgba(255, 99, 71, 0.3) !important;
             transform: none !important;
+        }
+        
+        /* Checkbox-Farbe verbessert (Checked-Zustand: Dunkles Grün/Olive) */
+        .st-ag { 
+             background-color: #556B2F !important; /* DarkOliveGreen */
+             border-color: #556B2F !important; 
+        }
+
+        /* Input/Selectbox mit speziellem Hintergrund (Artikel hinzufügen) */
+        /* Diese Selektoren wurden angepasst, um das helle Grün zu entfernen */
+        div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stTextInput > div > div > input,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) .stSelectbox > div > div,
+        div[data-testid="stHorizontalBlock"] > div:nth-child(3) .stTextInput > div > div > input 
+        {
+            /* Neutraler dunkler Glossy-Hintergrund beibehalten */
+            background: rgba(255, 255, 255, 0.08) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
         }
         
     </style>
     """, unsafe_allow_html=True)
+
+# ... (Der Rest der Python-Funktion bleibt unverändert in seiner Logik)
 
 
 def shopping_list():
