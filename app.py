@@ -763,39 +763,18 @@ def vacation_planning():
                 </div>
                 """, unsafe_allow_html=True)
 
-# Annahme, dass COLORS und supabase wie im Originalcode definiert sind:
-COLORS = {"Wichtig": "#f5576c", "Freizeit": "#2196F3", "Arbeit": "#4CAF50", "Schule": "#FFC107", "Einkauf": "#9C27B0"}
-# st.session_state.family_id und st.session_state.user werden als vorhanden angenommen
-
-# Hilfsfunktion für die Termine
-def get_mock_events(week_start):
-    # Mock-Daten für die Anzeige
-    events = [
-        {'id': 1, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '01:00:00', 'end_time': '05:00:00', 'title': 'Harry Potter Kino', 'person': 'lukasz', 'category': 'Freizeit', 'description': 'Harry Potter Vorstellung im Rhein Center'},
-        {'id': 2, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '13:00:00', 'end_time': '18:10:00', 'title': 'Kino', 'person': 'lukasz', 'category': 'Freizeit', 'description': 'Einen neuen Film schauen'},
-        {'id': 3, 'event_date': str(week_start + timedelta(days=0)), 'start_time': '08:00:00', 'end_time': '09:00:00', 'title': 'Meeting A', 'person': 'lukasz', 'category': 'Arbeit', 'description': 'Besprechung zur Projektplanung'},
-    ]
-    return events
+# Um die Funktion auszuführen, müssten Sie sie in Ihrer Streamlit-Anwendung aufrufen
+# vacation_planning()
 
 
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # Annahme für die Mock-Umgebung, ersetzen Sie dies durch Ihre tatsächliche Prüfung
-    if not st.session_state.get('family_id'):
-        st.session_state.family_id = 1 # Dummy-ID für die Demo
-    if not st.session_state.get('user'):
-        st.session_state.user = type('obj', (object,), {'id': 101})() # Dummy-User
-        
-    if not st.session_state.family_id:
-        st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
-        return
-    
-    # *** 1. Globale CSS-Anpassung für Streamlit-Hintergründe (für mehr Transparenz) ***
-    # Wichtig: Diese CSS-Anpassung zielt auf die Streamlit-Container ab, um den weißen Hintergrund zu entfernen.
+    # --- 1. Allgemeine CSS-Anpassung für Streamlit-Hintergründe (Transparenz/Glossy-Effekt) ---
+    # Passt die Streamlit-Container an, um den gewünschten Acryl/Glas-Look zu erzielen
     st.markdown("""
     <style>
-        /* Allgemeiner Hintergrund transparent oder leicht dunkler */
+        /* Allgemeiner Hintergrund transparent oder leicht dunkel */
         .stApp {
             background-color: transparent !important;
         }
@@ -809,13 +788,13 @@ def weekly_schedule():
             border-radius: 18px !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            padding: 15px; /* Anpassung des Paddings, falls nötig */
-            color: white; /* Textfarbe anpassen, da der Hintergrund dunkel ist */
+            padding: 15px;
+            color: white; /* Textfarbe anpassen, falls der Hintergrund dunkler ist */
         }
         
         /* Spezielle Anpassung für den "Neuen Termin hinzufügen" Expander */
         .stExpander .stBlock {
-            padding: 0; /* Padding für den inneren Block entfernen, da es der Expander schon hat */
+            padding: 0;
             border: none !important;
             box-shadow: none !important;
             background: transparent !important;
@@ -834,25 +813,10 @@ def weekly_schedule():
             transition: all 0.3s ease;
         }
 
-        .stTextInput > div > div > input:focus,
-        .stSelectbox > div > div:focus,
-        .stTextArea > div > textarea:focus,
-        .stDateInput > div > div > input:focus,
-        .stTimeInput > div > div > input:focus {
-            border-color: #667eea !important;
-            box-shadow: 0 0 0 2px #667eea30 !important;
-        }
-        
-        /* Labels auch heller machen */
+        /* Labels heller machen */
         .stForm label {
             color: #d1d5db !important;
             font-weight: 600;
-        }
-
-        /* Titel/Header Farbe anpassen, um im dunklen Theme besser auszusehen */
-        .st-emotion-cache-18ni7ap { /* Streamlit Title/Header */
-            color: white !important;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
         
         /* Spezielles Design für die Create-Card (ursprüngliches Design beibehalten/verbessern) */
@@ -868,11 +832,15 @@ def weekly_schedule():
         }
     </style>
     """, unsafe_allow_html=True)
+
+    
+    if not st.session_state.family_id:
+        st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
+        return
     
     # Neuen Termin hinzufügen - Premium Card
     st.markdown('<div class="create-card">', unsafe_allow_html=True)
     with st.expander("✨ **Neuen Termin erstellen**", expanded=False):
-        # ... (Erstellung des Formulars bleibt gleich)
         col1, col2 = st.columns(2)
         with col1:
             event_title = st.text_input("📝 Titel", key="event_title")
@@ -885,17 +853,25 @@ def weekly_schedule():
         
         description = st.text_area("💬 Beschreibung", key="event_desc")
         
-        # ... (Button-Logik bleibt gleich)
         if st.button("✨ Termin erstellen", use_container_width=True, type="primary") and event_title:
             try:
-                # Hier müssten Sie Ihre Supabase-Logik einfügen.
-                # In dieser Demo wird es übersprungen:
-                # supabase.table('schedule_events').insert({...}).execute()
-                st.success("✅ Termin erfolgreich erstellt! (Simuliert)")
-                # st.rerun()
+                # --- WICHTIG: SUPABASE-FUNKTION BEIBEHALTEN ---
+                supabase.table('schedule_events').insert({
+                    "family_id": st.session_state.family_id,
+                    "user_id": st.session_state.user.id,
+                    "title": event_title,
+                    "person": person,
+                    "category": event_category,
+                    "event_date": str(event_date),
+                    "start_time": str(start_time),
+                    "end_time": str(end_time),
+                    "description": description
+                }).execute()
+                st.success("✅ Termin erfolgreich erstellt!")
+                st.rerun() # Neu laden nach erfolgreicher Speicherung
             except Exception as e:
                 st.error(f"❌ Fehler: {str(e)}")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) # Schließe die Create-Card Div
     
     st.divider()
     
@@ -905,22 +881,25 @@ def weekly_schedule():
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
     week_end = week_start + timedelta(days=6)
     
-    # Mock-Daten verwenden, da Supabase in dieser Umgebung nicht definiert ist
-    events = get_mock_events(week_start - timedelta(weeks=week_offset_raw)) 
+    try:
+        # --- WICHTIG: SUPABASE-FUNKTION BEIBEHALTEN ---
+        response = supabase.table('schedule_events').select('*').eq(
+            'family_id', st.session_state.family_id
+        ).gte('event_date', str(week_start)).lte('event_date', str(week_end)).order('event_date', desc=False).execute()
+        events = response.data
+    except Exception as e:
+        st.error(f"❌ Fehler beim Laden: {str(e)}")
+        return
     
-    # ... (Terminlade-Logik bleibt gleich, mit Mock-Daten)
-    
-    # Wochennavigation
+    # Wochennavigation (verbesserter Kontrast)
     col1, col2, col3 = st.columns([1, 3, 1])
     with col1:
         if st.button("◀ Zurück", use_container_width=True, key="prev_week"):
             st.session_state.week_offset = st.session_state.get('week_offset', 0) - 1
             st.rerun()
     with col2:
-        week_offset = st.session_state.get('week_offset', 0)
-        current_week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+        current_week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
         current_week_end = current_week_start + timedelta(days=6)
-        # Bessere Kontrast-Navigation im dunklen Theme
         st.markdown(f"""
         <div style="text-align: center; padding: 16px; 
                       background: linear-gradient(135deg, #1f2937 0%, #0f172a 100%); /* Dunklerer Hintergrund */
@@ -950,7 +929,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # Zeitraster
+    # Zeitraster und Kalenderlogik beibehalten
     time_slots = [f"{h:02d}:00" for h in range(6, 23)]
     days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     days_short = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -994,7 +973,6 @@ def weekly_schedule():
                 <div class="event-block" 
                       style="background: linear-gradient(145deg, {color}20, {color}10);
                             border-left: 5px solid {color};
-                            /* glossy effect - leichter weißer Schimmer oben */
                             box-shadow: 0 8px 24px {color}30, inset 0 1px 0 rgba(255,255,255,0.2);" 
                       onclick="deleteEvent('{event_id}')"
                       title="🗑️ Klicken zum Löschen: {event.get('description', '')}">
@@ -1009,8 +987,7 @@ def weekly_schedule():
     
     calendar_html += '</div>'
     
-    # Kalender mit iframe rendern
-    # *** 2. CSS im iframe anpassen (für Kalenderraster) ***
+    # --- 2. CSS im iframe anpassen (für Kalenderraster: Transparenz, Glossy, Professionalität) ---
     st.components.v1.html(f"""
     <!DOCTYPE html>
     <html>
@@ -1027,31 +1004,27 @@ def weekly_schedule():
         }}
         
         body {{
-            /* Hintergrund transparent machen, um Streamlit-Hintergrund zu zeigen */
-            background: transparent;
+            background: transparent; /* Wichtig für Transparenz */
             padding: 0; 
             min-height: 100vh;
-            color: #d1d5db; /* Textfarbe anpassen */
+            color: #d1d5db; 
         }}
         
         .calendar-grid {{
             display: grid;
             grid-template-columns: 75px repeat(7, 1fr);
-            gap: 6px; /* Etwas mehr Abstand für Übersichtlichkeit */
-            /* Hintergrund des Grids selbst nun transparent/glasig */
-            background: rgba(255, 255, 255, 0.05); /* Sehr dunkel oder leicht transparent */
+            gap: 6px; 
+            background: rgba(255, 255, 255, 0.05); 
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             border-radius: 28px;
             padding: 6px;
-            /* Prof. Shadow-Effekt */
             box-shadow: 
-                0 25px 70px rgba(0, 0, 0, 0.4), /* Dunklerer, tieferer Schatten */
-                0 0 0 1px rgba(255, 255, 255, 0.05) inset; /* Leichter Rand */
+                0 25px 70px rgba(0, 0, 0, 0.4), 
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset; 
         }}
         
         .calendar-header {{
-            /* Header: Glänzend und transparent */
             background: linear-gradient(145deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
             backdrop-filter: blur(25px) saturate(180%);
             -webkit-backdrop-filter: blur(25px) saturate(180%);
@@ -1059,18 +1032,16 @@ def weekly_schedule():
             padding: 22px 12px;
             text-align: center;
             font-weight: 800;
-            font-size: 0.95em;
             border-radius: 20px;
             box-shadow: 
                 0 8px 30px rgba(102, 126, 234, 0.4),
                 inset 0 2px 0 rgba(255, 255, 255, 0.3); /* Glossy Effekt */
-            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }}
         
-        /* Glossy Schimmer Effekt beibehalten */
+        /* Glossy Schimmer Effekt für Header beibehalten */
         .calendar-header::before {{
             content: '';
             position: absolute;
@@ -1090,7 +1061,6 @@ def weekly_schedule():
         }}
         
         .calendar-header.today-header {{
-            /* Heute-Header: Verbessert mit deutlicherem "Pulse" */
             background: linear-gradient(145deg, #f093fb 0%, #f5576c 100%);
             animation: todayPulse 4s ease-in-out infinite;
             box-shadow: 
@@ -1103,35 +1073,29 @@ def weekly_schedule():
         @keyframes todayPulse {{
             0%, 100% {{ 
                 transform: scale(1);
-                box-shadow: 0 0 40px rgba(245, 87, 108, 0.7);
             }}
             50% {{ 
-                transform: scale(1.03); /* Weniger aggressiver Zoom */
-                box-shadow: 0 0 55px rgba(245, 87, 108, 0.9);
+                transform: scale(1.03); 
             }}
         }}
         
         .time-label {{
-            /* Zeit-Label: Transparenter und farblich angepasst */
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             padding: 14px 10px;
             text-align: center;
-            font-size: 0.85em;
             font-weight: 700;
-            color: #667eea; /* Primärfarbe beibehalten */
+            color: #667eea; 
             border-radius: 16px;
             box-shadow: 
                 0 4px 16px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Leichter Glossy Schimmer */
+                inset 0 1px 0 rgba(255, 255, 255, 0.1); 
             border: 1px solid rgba(255, 255, 255, 0.1);
-            letter-spacing: 0.3px;
         }}
         
         .calendar-cell {{
-            /* Kalenderzelle: Transparent und Glas-Effekt */
-            background: rgba(255, 255, 255, 0.05); /* Sehr hell transparent */
+            background: rgba(255, 255, 255, 0.05); 
             backdrop-filter: blur(15px) saturate(180%);
             -webkit-backdrop-filter: blur(15px) saturate(180%);
             min-height: 90px;
@@ -1146,7 +1110,6 @@ def weekly_schedule():
         }}
         
         .calendar-cell:hover {{
-            /* Hover Effekt: Leichter, transparenter Hintergrund */
             background: rgba(255, 255, 255, 0.1);
             transform: translateY(-2px);
             box-shadow: 
@@ -1155,9 +1118,8 @@ def weekly_schedule():
         }}
         
         .calendar-cell.today {{
-            /* Heute Zelle: Dezenterer, aber erkennbarer Rahmen */
-            background: rgba(33, 150, 243, 0.08); /* Sehr dezenter blauer Schimmer */
-            border: 2.5px solid #2196F380; /* Halbtransparenter Rand */
+            background: rgba(33, 150, 243, 0.08); 
+            border: 2.5px solid #2196F380; 
             box-shadow: 
                 0 0 30px rgba(33, 150, 243, 0.3),
                 0 8px 24px rgba(33, 150, 243, 0.1),
@@ -1165,7 +1127,6 @@ def weekly_schedule():
         }}
         
         .event-block {{
-            /* Event Block: Stärkerer Glas-Effekt */
             padding: 12px 14px;
             border-radius: 16px;
             margin-bottom: 8px;
@@ -1177,11 +1138,11 @@ def weekly_schedule():
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white; /* Textfarbe in Event-Blöcken weiß */
+            color: white; 
         }}
         
+        /* Glossy Light Schimmer für Events */
         .event-block::before {{
-            /* Glossy Light Schimmer */
             content: '';
             position: absolute;
             top: 0;
@@ -1210,33 +1171,11 @@ def weekly_schedule():
         }}
         
         .event-time, .event-title, .event-person {{
-            color: white !important; /* Alle Event-Texte weiß halten */
+            color: white !important; 
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
         }}
         
-        .event-time {{
-            font-weight: 800;
-            font-size: 0.95em;
-            color: white;
-        }}
-        
-        .event-time::before {{
-            content: '⏰';
-            font-size: 1.15em;
-        }}
-        
-        .event-title {{
-            font-weight: 700;
-            font-size: 1.05em;
-        }}
-        
-        .event-person {{
-            opacity: 0.9;
-            font-weight: 600;
-        }}
-        
         .delete-hint {{
-            /* Lösch-Hinweis wie gehabt */
             position: absolute;
             top: 8px;
             right: 8px;
@@ -1258,15 +1197,10 @@ def weekly_schedule():
             transform: translateY(0);
         }}
         
-        /* Media Queries für Responsivität beibehalten */
         @media (max-width: 768px) {{
             .calendar-grid {{
                 grid-template-columns: 60px repeat(7, 1fr);
                 gap: 2px;
-            }}
-            
-            .event-title {{
-                font-size: 0.9em;
             }}
         }}
         </style>
@@ -1275,7 +1209,6 @@ def weekly_schedule():
         {calendar_html}
         
         <script>
-        // ... (JavaScript bleibt gleich)
         function deleteEvent(eventId) {{
             if (confirm('Möchten Sie diesen Termin wirklich löschen?')) {{
                 // Sende Nachricht an Streamlit
@@ -1290,17 +1223,21 @@ def weekly_schedule():
     </html>
     """, height=2000, scrolling=True)
     
-    # Event-Löschung behandeln (Logik bleibt gleich)
+    # Event-Löschung behandeln
     if 'delete_event_id' in st.session_state:
-        # Hier müssten Sie Ihre Supabase-Logik einfügen.
-        # supabase.table('schedule_events').delete().eq('id', event_id).execute()
-        st.success("✅ Termin gelöscht! (Simuliert)")
-        del st.session_state.delete_event_id
-        # st.rerun() # Neuladen nur, wenn tatsächlich gelöscht wird
+        event_id = st.session_state.delete_event_id
+        try:
+            # --- WICHTIG: SUPABASE-FUNKTION BEIBEHALTEN ---
+            supabase.table('schedule_events').delete().eq('id', event_id).execute()
+            st.success("✅ Termin gelöscht!")
+            del st.session_state.delete_event_id
+            st.rerun() # Neu laden nach erfolgreichem Löschen
+        except Exception as e:
+            st.error(f"❌ Fehler beim Löschen: {str(e)}")
     
     st.divider()
     
-    # Detail-Liste mit Premium Design
+    # Detail-Liste mit Premium Design (Transparenz/Glossy)
     st.markdown("""
     <h2 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
               -webkit-background-clip: text;
@@ -1327,14 +1264,8 @@ def weekly_schedule():
                 day_name = days_of_week[event_date.weekday()]
                 color = COLORS.get(event.get('category'), '#CCCCCC')
                 
-                # *** 3. HTML-Fehlerbehebung und Detail-Ansicht-Styling anpassen ***
-                # Behebung des HTML-Fehlers: Beschreibungstext bereinigen oder sicherstellen,
-                # dass er kein unerwünschtes HTML (wie das im Screenshot sichtbare '</p>') enthält.
-                # Hier verwenden wir `st.text()` außerhalb von Markdown, um den Text zu rendern,
-                # aber da wir den Card-Stil benötigen, machen wir es im Markdown-Block und
-                # stellen sicher, dass die Beschreibung im <p>-Tag ist, um den Fehler zu beheben.
-                
-                # Beschreibungstext bereinigen (hier in Python simuliert, im echten Fall in der Datenquelle prüfen)
+                # --- WICHTIG: HTML-FEHLERBEHEBUNG ---
+                # Unerwünschtes HTML in der Beschreibung maskieren, um Anzeigefehler zu vermeiden.
                 description_safe = event.get('description', '').replace('<', '&lt;').replace('>', '&gt;')
                 
                 st.markdown(f"""
@@ -1343,10 +1274,10 @@ def weekly_schedule():
                             border-radius: 24px;
                             padding: 24px;
                             margin-bottom: 20px;
-                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2), /* Dunkler Schatten */
+                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2), 
                                         inset 0 1px 0 rgba(255, 255, 255, 0.1);
                             border-left: 6px solid {color};
-                            border: 1.5px solid rgba(255, 255, 255, 0.15); /* Dezenter Rand */
+                            border: 1.5px solid rgba(255, 255, 255, 0.15);
                             transition: all 0.4s ease;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap;">
                         <div style="background: linear-gradient(145deg, {color}85, {color}60);
@@ -1390,12 +1321,12 @@ def weekly_schedule():
                 </div>
                 """, unsafe_allow_html=True)
             with col2:
-                # Button-Styling bleibt gleich, muss aber im Column-Kontext sein
                 st.markdown("<br><br>", unsafe_allow_html=True)
                 if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True, type="secondary"):
-                    # supabase.table('schedule_events').delete().eq('id', event['id']).execute()
-                    st.success("✅ Gelöscht! (Simuliert)")
-                    # st.rerun()
+                    # --- WICHTIG: SUPABASE-FUNKTION BEIBEHALTEN ---
+                    supabase.table('schedule_events').delete().eq('id', event['id']).execute()
+                    st.success("✅ Gelöscht!")
+                    st.rerun() # Neu laden nach erfolgreichem Löschen
     else:
         # Kein Termine-Container mit transparentem Design
         st.markdown("""
@@ -1424,7 +1355,6 @@ def weekly_schedule():
                             border-radius: 16px;
                             text-align: center;
                             font-weight: 700;
-                            /* Glossy Effekt */
                             box-shadow: 0 8px 24px {color}40, inset 0 1px 0 rgba(255,255,255,0.4);
                             transition: all 0.3s ease;
                             cursor: pointer;
@@ -1432,6 +1362,7 @@ def weekly_schedule():
                     {category}
                 </div>
                 """, unsafe_allow_html=True)
+
 # Hauptanwendung
 def main():
     if not st.session_state.authenticated:
