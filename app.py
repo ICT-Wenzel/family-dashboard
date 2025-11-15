@@ -400,17 +400,7 @@ def vacation_planning():
     # Angenommen, 'supabase' ist global oder im Streamlit-Kontext verfügbar
     # Angenommen, st.session_state.family_id und st.session_state.user sind gesetzt
 
-    st.markdown("""
-    <h1 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                font-weight: 800;
-                font-size: 2.2em;
-                margin-bottom: 25px;">
-        🏖️ Ferien- und Urlaubsplanung
-    </h1>
-    """, unsafe_allow_html=True)
-    
+    st.title("🏖️ Ferienplanung")
     if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
