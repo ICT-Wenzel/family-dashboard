@@ -763,27 +763,23 @@ def vacation_planning():
                 </div>
                 """, unsafe_allow_html=True)
 
-
 COLORS = {
-    "Freizeit": "#ff8c00", # Dunkleres Orange
-    "Schule": "#2196F3",   # Blau
-    "Arbeit": "#4CAF50",   # Grün
-    "Sonstiges": "#9C27B0" # Lila
+    "Freizeit": "#ff8c00",
+    "Schule": "#2196F3",
+    "Arbeit": "#4CAF50",
+    "Sonstiges": "#9C27B0"
 }
 
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
-    # --- 1. GLOBALE CSS-KORREKTUR: Erzwinge Dunkelheit und Transparenz ---
+    # CSS-Korrektur
     st.markdown("""
     <style>
-        /* Erzwinge allgemeinen App-Hintergrund transparent und dunkel (falls nicht schon passiert) */
         .stApp {
             background-color: transparent !important;
         }
 
-        /* HARD FIX: Verstecke alle unsichtbaren Streamlit-Blöcke (die als unnötige Boxen erscheinen) */
-        /* Dies betrifft die Linien und leere Container, die durch st.markdown erzeugt werden */
         div[data-testid^="stHorizontalBlock"],
         div[data-testid^="stVerticalBlock"],
         div[data-testid="stBlock"] {
@@ -794,7 +790,6 @@ def weekly_schedule():
             margin: 0 !important;
         }
 
-        /* KORREKTUR: st.divider() Linien sollen keine Boxen sein */
         .stDivider {
             background: transparent !important;
             box-shadow: none !important;
@@ -807,7 +802,6 @@ def weekly_schedule():
             height: 0 !important;
         }
         
-        /* Gezielte Glossy-Anpassung der sichtbaren Streamlit-Widgets */
         .stExpander, 
         .stMultiSelect, 
         .stSelectbox, 
@@ -816,9 +810,7 @@ def weekly_schedule():
         .stDateInput, 
         .stTimeInput,
         div[data-testid="stForm"],
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) /* Navigation Mitte Container */
-        {
-            /* Glossy/Acryl-Effekt */
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
             background: rgba(255, 255, 255, 0.08) !important;
             backdrop-filter: blur(15px) saturate(180%);
             -webkit-backdrop-filter: blur(15px) saturate(180%);
@@ -829,7 +821,6 @@ def weekly_schedule():
             color: #f3f4f6;
         }
         
-        /* Spezielles Design für die Create-Card (Expander-Bereich) */
         .create-card {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15)) !important;
             border: 2px solid rgba(102, 126, 234, 0.4) !important;
@@ -842,16 +833,30 @@ def weekly_schedule():
              border: none !important;
         }
 
-        
+        /* NEUE KLASSE FÜR LÖSCHEN-BUTTON */
+        .delete-button-box {
+            background: rgba(255, 59, 48, 0.15) !important;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 59, 48, 0.3) !important;
+            border-radius: 16px !important;
+            padding: 8px !important;
+            box-shadow: 0 8px 24px rgba(255, 59, 48, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .delete-button-box:hover {
+            background: rgba(255, 59, 48, 0.25) !important;
+            border-color: rgba(255, 59, 48, 0.5) !important;
+            box-shadow: 0 12px 32px rgba(255, 59, 48, 0.4);
+            transform: translateY(-2px);
+        }
     </style>
     """, unsafe_allow_html=True)
 
-    
     if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
     
-    # Neuer Termin hinzufügen (unverändert)
+    # Neuer Termin hinzufügen
     st.markdown('<div class="create-card">', unsafe_allow_html=True)
     with st.expander("✨ **Neuen Termin erstellen**", expanded=False):
         col1, col2 = st.columns(2)
@@ -868,8 +873,7 @@ def weekly_schedule():
         
         if st.button("✨ Termin erstellen", use_container_width=True, type="primary") and event_title:
             try:
-                # SUPABASE-FUNKTION BEIBEHALTEN
-                # ... Supabase Insert Logik ...
+                # Supabase Insert hier einfügen
                 st.success("✅ Termin erfolgreich erstellt!")
                 st.rerun() 
             except Exception as e:
@@ -878,32 +882,52 @@ def weekly_schedule():
     
     st.divider()
     
-    # Termine laden
+    # KORREKTUR: Korrektes heute-Datum verwenden (nicht hardcoded)
     today = datetime.now().date()
-    # ANNAHME: Samstag, 15.11.2025 ist heute (wie in Ihren Bildern)
-    try:
-        today = datetime.strptime('2025-11-15', '%Y-%m-%d').date() 
-    except ValueError:
-        pass
-
+    
     week_offset_raw = st.session_state.get('week_offset', 0)
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset_raw)
     
     try:
-        # SUPABASE-FUNKTION BEIBEHALTEN (Bitte diese Zeilen aktivieren)
-        # response = supabase.table('schedule_events').select('*')...
-        
-        # PLATZHALTER FÜR TESTZWECKE 
+        # TESTDATEN mit korrekten Daten
+        # Für echte Implementierung: Supabase Abfrage hier einfügen
         events = [
-            {'id': 1, 'event_date': str(week_start + timedelta(days=5)), 'start_time': '14:00:00', 'end_time': '16:00:00', 'title': 'Mathe Nachhilfe', 'person': 'Tomek', 'category': 'Schule', 'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'}, # Samstag (15.11)
-            {'id': 2, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '13:00:00', 'end_time': '18:10:00', 'title': 'Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': ''}, # Sonntag (16.11)
-            {'id': 3, 'event_date': str(week_start + timedelta(days=6)), 'start_time': '01:00:00', 'end_time': '17:00:00', 'title': 'Harry Potter Kino', 'person': 'Lukasz', 'category': 'Freizeit', 'description': 'Harry Potter Vorstellung im Rhein Center'}, # Sonntag (16.11)
+            {
+                'id': 1, 
+                'event_date': str(week_start + timedelta(days=5)),  # Samstag
+                'start_time': '14:00:00', 
+                'end_time': '16:00:00', 
+                'title': 'Mathe Nachhilfe', 
+                'person': 'Tomek', 
+                'category': 'Schule', 
+                'description': 'Tomek hat Nachhilfe bei Hannes für Mathe BMS'
+            },
+            {
+                'id': 2, 
+                'event_date': str(week_start + timedelta(days=6)),  # Sonntag
+                'start_time': '13:00:00', 
+                'end_time': '18:10:00', 
+                'title': 'Kino', 
+                'person': 'Lukasz', 
+                'category': 'Freizeit', 
+                'description': ''
+            },
+            {
+                'id': 3, 
+                'event_date': str(week_start + timedelta(days=6)),  # Sonntag
+                'start_time': '01:00:00', 
+                'end_time': '17:00:00', 
+                'title': 'Harry Potter Kino', 
+                'person': 'Lukasz', 
+                'category': 'Freizeit', 
+                'description': 'Harry Potter Vorstellung im Rhein Center'
+            },
         ]
     except Exception as e:
         st.error(f"❌ Fehler beim Laden: {str(e)}")
         events = []
     
-    # Wochennavigation (unverändert)
+    # Wochennavigation
     col1, col2, col3 = st.columns([1, 3, 1])
     with col1:
         if st.button("◀ Zurück", use_container_width=True, key="prev_week"):
@@ -940,7 +964,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # Kalender-Logik (GRID)
+    # Kalender Grid
     time_slots = [f"{h:02d}:00" for h in range(6, 23)]
     days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     days_short = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -999,7 +1023,7 @@ def weekly_schedule():
     
     calendar_html += '</div>'
     
-    # --- WICHTIG: Komponenten-HTML für das GRID (mit korrigiertem CSS) ---
+    # Komponenten HTML für Grid
     st.components.v1.html(f"""
     <!DOCTYPE html>
     <html>
@@ -1026,7 +1050,7 @@ def weekly_schedule():
             display: grid;
             grid-template-columns: 75px repeat(7, 1fr);
             gap: 6px; 
-            background: rgba(255, 255, 255, 0.08); /* Glas-Hintergrund */
+            background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             border-radius: 28px;
@@ -1072,7 +1096,7 @@ def weekly_schedule():
         }}
         
         .calendar-cell {{
-            background: rgba(10, 10, 15, 0.9); /* HARD FIX: Erzwinge sehr dunkle Zelle */
+            background: rgba(10, 10, 15, 0.9);
             backdrop-filter: blur(15px) saturate(180%);
             -webkit-backdrop-filter: blur(15px) saturate(180%);
             min-height: 90px;
@@ -1106,7 +1130,6 @@ def weekly_schedule():
         <script>
         function deleteEvent(eventId) {{
             if (confirm('Möchten Sie diesen Termin wirklich löschen?')) {{
-                // Sende Nachricht an Streamlit
                 window.parent.postMessage({{
                     type: 'streamlit:setComponentValue',
                     value: {{ delete_event_id: eventId }}
@@ -1118,12 +1141,11 @@ def weekly_schedule():
     </html>
     """, height=2000, scrolling=True)
     
-    # Event-Löschung behandeln (unverändert)
+    # Event-Löschung behandeln
     if 'delete_event_id' in st.session_state:
         event_id = st.session_state.delete_event_id
         try:
-            # SUPABASE-FUNKTION BEIBEHALTEN
-            # ... Supabase Delete Logik ...
+            # Supabase Delete hier einfügen
             st.success("✅ Termin gelöscht!")
             del st.session_state.delete_event_id
             st.rerun() 
@@ -1132,7 +1154,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # --- Detail-Liste Titel ---
+    # Detail-Liste Titel
     st.markdown("""
     <h2 style="font-size: 1.8em; font-weight: 800; margin-bottom: 25px; 
               background: linear-gradient(135deg, #667eea, #764ba2); 
@@ -1151,24 +1173,23 @@ def weekly_schedule():
     
     if week_events:
         for event in sorted(week_events, key=lambda x: (x.get('event_date', ''), x.get('start_time', ''))):
-            col1, col2 = st.columns([6, 1])
+            # KORREKTUR: Neue Column-Struktur für Löschen-Button
+            col1, col2 = st.columns([10, 1])
             with col1:
                 event_date = datetime.strptime(event['event_date'], '%Y-%m-%d').date()
                 days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
                 day_name = days_of_week[event_date.weekday()]
                 color = COLORS.get(event.get('category'), '#CCCCCC')
                 
-                # Unerwünschtes HTML in der Beschreibung maskieren und leere Beschreibung behandeln
                 description_content = event.get('description', '')
                 description_safe = description_content.replace('<', '&lt;').replace('>', '&gt;')
                 
-                # --- KORREKTUR DER DETAILKARTE (Sehr dunkel und vereinfacht, um Fehler zu vermeiden) ---
                 st.markdown(f"""
-                <div style="background: rgba(10, 10, 20, 1); /* HARD FIX: KEINE Transparenz mehr */
+                <div style="background: rgba(10, 10, 20, 1);
                             border-radius: 24px;
                             padding: 24px;
                             margin-bottom: 20px;
-                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9); /* Tief dunkler Schatten */
+                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9);
                             border-left: 6px solid {color};
                             border: 1.5px solid rgba(255, 255, 255, 0.1); 
                             transition: all 0.4s ease;">
@@ -1215,16 +1236,16 @@ def weekly_schedule():
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
+            
+            # KORREKTUR: Box-Styling für Löschen-Button
             with col2:
-                # Der Papierkorb-Button
-                st.markdown("<br><br>", unsafe_allow_html=True) 
-                if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True, type="secondary"):
-                    # SUPABASE-FUNKTION BEIBEHALTEN
-                    # ... Supabase Delete Logik ...
+                st.markdown('<div class="delete-button-box">', unsafe_allow_html=True)
+                if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True):
+                    # Supabase Delete hier einfügen
                     st.success("✅ Gelöscht!")
-                    st.rerun() 
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
-        # Kein Termine-Container (unverändert)
         st.markdown("""
         <div style="text-align: center; padding: 80px 20px;
                     background: linear-gradient(145deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
