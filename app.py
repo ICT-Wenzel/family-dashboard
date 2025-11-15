@@ -474,32 +474,34 @@ def weekly_schedule():
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
     
-    # Neuen Termin hinzufügen - Glassmorphism Card
-    with st.expander("➕ Neuen Termin erstellen", expanded=False):
-        st.markdown("""
-        <style>
-        .stExpander {
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.18);
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
+    # Neuen Termin hinzufügen - Premium Card
+    st.markdown("""
+    <style>
+    .create-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        border: 1.5px solid rgba(102, 126, 234, 0.2);
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    with st.expander("✨ Neuen Termin erstellen", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
-            event_title = st.text_input("Titel", key="event_title")
-            person = st.text_input("Person", key="event_person")
-            event_category = st.selectbox("Kategorie", list(COLORS.keys()), key="event_cat")
+            event_title = st.text_input("📝 Titel", key="event_title")
+            person = st.text_input("👤 Person", key="event_person")
+            event_category = st.selectbox("🏷️ Kategorie", list(COLORS.keys()), key="event_cat")
         with col2:
-            event_date = st.date_input("Datum", key="event_date")
-            start_time = st.time_input("Von", key="event_start")
-            end_time = st.time_input("Bis", key="event_end")
+            event_date = st.date_input("📅 Datum", key="event_date")
+            start_time = st.time_input("🕐 Von", key="event_start")
+            end_time = st.time_input("🕐 Bis", key="event_end")
         
-        description = st.text_area("Beschreibung", key="event_desc")
+        description = st.text_area("💬 Beschreibung", key="event_desc")
         
-        if st.button("✨ Termin erstellen", use_container_width=True) and event_title:
+        if st.button("✨ Termin erstellen", use_container_width=True, type="primary") and event_title:
             try:
                 supabase.table('schedule_events').insert({
                     "family_id": st.session_state.family_id,
@@ -512,10 +514,10 @@ def weekly_schedule():
                     "end_time": str(end_time),
                     "description": description
                 }).execute()
-                st.success("✅ Termin erstellt!")
+                st.success("✅ Termin erfolgreich erstellt!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Fehler: {str(e)}")
+                st.error(f"❌ Fehler: {str(e)}")
     
     st.divider()
     
@@ -530,10 +532,10 @@ def weekly_schedule():
         ).gte('event_date', str(week_start)).lte('event_date', str(week_end)).order('event_date', desc=False).execute()
         events = response.data
     except Exception as e:
-        st.error(f"Fehler beim Laden: {str(e)}")
+        st.error(f"❌ Fehler beim Laden: {str(e)}")
         return
     
-    # Wochennavigation mit modernem Design
+    # Wochennavigation
     col1, col2, col3 = st.columns([1, 3, 1])
     with col1:
         if st.button("◀ Zurück", use_container_width=True, key="prev_week"):
@@ -544,10 +546,11 @@ def weekly_schedule():
         current_week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
         current_week_end = current_week_start + timedelta(days=6)
         st.markdown(f"""
-        <div style="text-align: center; padding: 15px; 
+        <div style="text-align: center; padding: 18px; 
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 15px; color: white; font-weight: bold;
-                    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);">
+                    border-radius: 18px; color: white; font-weight: 700; font-size: 1.1em;
+                    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+                    border: 2px solid rgba(255, 255, 255, 0.2);">
             📅 {current_week_start.strftime('%d.%m.%Y')} - {current_week_end.strftime('%d.%m.%Y')}
         </div>
         """, unsafe_allow_html=True)
@@ -558,233 +561,50 @@ def weekly_schedule():
     
     # Heute-Button
     if st.session_state.get('week_offset', 0) != 0:
-        if st.button("🔵 Zurück zu heute", use_container_width=True, key="today_btn"):
+        if st.button("🎯 Zurück zu heute", use_container_width=True, key="today_btn", type="secondary"):
             st.session_state.week_offset = 0
             st.rerun()
     
     # Filter
     all_persons = list(set([e.get('person', '') for e in events if e.get('person')]))
     if all_persons:
-        filter_person = st.multiselect("👤 Nach Person filtern", all_persons, default=all_persons, key="schedule_filter")
+        filter_person = st.multiselect("👥 Nach Person filtern", all_persons, default=all_persons, key="schedule_filter")
     else:
         filter_person = []
     
     st.divider()
     
-    # Modernes Glassmorphism CSS
-    st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
-    * {
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: 70px repeat(7, 1fr);
-        gap: 3px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        padding: 3px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        overflow: hidden;
-    }
-    
-    .calendar-header {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        color: white;
-        padding: 20px 10px;
-        text-align: center;
-        font-weight: 700;
-        font-size: 0.95em;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.3);
-        letter-spacing: 0.5px;
-    }
-    
-    .calendar-header.today-header {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        animation: pulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-    }
-    
-    .time-label {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        padding: 12px 8px;
-        text-align: center;
-        font-size: 0.8em;
-        font-weight: 600;
-        color: #667eea;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-    
-    .calendar-cell {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        min-height: 80px;
-        padding: 6px;
-        position: relative;
-        border-radius: 12px;
-        transition: all 0.3s ease;
-    }
-    
-    .calendar-cell:hover {
-        background: rgba(255, 255, 255, 1);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    }
-    
-    .calendar-cell.today {
-        background: linear-gradient(135deg, rgba(227, 242, 253, 0.9), rgba(187, 222, 251, 0.9));
-        border: 2px solid #2196F3;
-        box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
-    }
-    
-    .event-block {
-        padding: 10px 12px;
-        border-radius: 12px;
-        margin-bottom: 6px;
-        font-size: 0.85em;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .event-block::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        border-radius: 12px;
-    }
-    
-    .event-block:hover::before {
-        opacity: 1;
-    }
-    
-    .event-block:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 12px 35px rgba(0,0,0,0.25);
-    }
-    
-    .event-time {
-        font-weight: 700;
-        font-size: 0.9em;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    .event-time::before {
-        content: '⏰';
-        font-size: 1.1em;
-    }
-    
-    .event-title {
-        font-weight: 600;
-        margin-top: 4px;
-        font-size: 1em;
-        line-height: 1.3;
-    }
-    
-    .event-person {
-        font-size: 0.85em;
-        opacity: 0.9;
-        margin-top: 4px;
-        font-weight: 500;
-    }
-    
-    .detail-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 12px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        transition: all 0.3s ease;
-    }
-    
-    .detail-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 45px 0 rgba(31, 38, 135, 0.25);
-    }
-    
-    .category-badge {
-        display: inline-block;
-        padding: 8px 16px;
-        border-radius: 12px;
-        font-weight: 600;
-        text-align: center;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-    
-    .category-badge:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Zeitraster (6 Uhr bis 22 Uhr)
+    # Zeitraster
     time_slots = [f"{h:02d}:00" for h in range(6, 23)]
-    
-    # Header mit Wochentagen
     days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     days_short = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
     week_offset = st.session_state.get('week_offset', 0)
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
     
-    # Kalender-Grid HTML generieren
+    # Kalender HTML erstellen
     calendar_html = '<div class="calendar-grid">'
     
-    # Header-Zeile
-    calendar_html += '<div class="calendar-header" style="grid-column: 1;">⏰<br>Zeit</div>'
+    # Header
+    calendar_html += '<div class="calendar-header time-header">⏰<br><span style="font-size: 0.8em;">Zeit</span></div>'
     for i, (day_name, day_short) in enumerate(zip(days_of_week, days_short)):
         day = week_start + timedelta(days=i)
         is_today_class = "today-header" if day == today else ""
         today_marker = "🔥 " if day == today else ""
         calendar_html += f'''
         <div class="calendar-header {is_today_class}">
-            {today_marker}{day_short}<br>
-            <span style="font-size: 0.85em; opacity: 0.9;">{day.strftime("%d.%m")}</span>
+            {today_marker}<strong>{day_short}</strong><br>
+            <span style="font-size: 0.85em; opacity: 0.95;">{day.strftime("%d.%m")}</span>
         </div>
         '''
     
     # Zeitslots und Events
     for time_slot in time_slots:
-        # Zeit-Label
         calendar_html += f'<div class="time-label">{time_slot}</div>'
         
-        # Für jeden Tag der Woche
         for i in range(7):
             day = week_start + timedelta(days=i)
             is_today_class = "today" if day == today else ""
             
-            # Events für diesen Tag und diese Stunde finden
             day_events = [
                 e for e in events 
                 if e.get('event_date') == str(day) 
@@ -795,16 +615,18 @@ def weekly_schedule():
             cell_content = ""
             for event in day_events:
                 color = COLORS.get(event.get('category'), '#CCCCCC')
-                # Berechne hellere Variante für Glossy-Effekt
+                event_id = event['id']
                 cell_content += f'''
                 <div class="event-block" 
-                     style="background: linear-gradient(135deg, {color}60, {color}40);
+                     style="background: linear-gradient(145deg, {color}85, {color}55);
                             border-left: 5px solid {color};
-                            box-shadow: 0 6px 20px {color}30;" 
-                     title="{event.get('description', '')}">
+                            box-shadow: 0 8px 24px {color}40, inset 0 1px 0 rgba(255,255,255,0.3);" 
+                     onclick="deleteEvent('{event_id}')"
+                     title="🗑️ Klicken zum Löschen: {event.get('description', '')}">
                     <div class="event-time">{event.get('start_time', '')[:5]}-{event.get('end_time', '')[:5]}</div>
                     <div class="event-title">{event.get('title', 'N/A')}</div>
                     <div class="event-person">👤 {event.get('person', 'N/A')}</div>
+                    <div class="delete-hint">🗑️ Löschen</div>
                 </div>
                 '''
             
@@ -812,109 +634,156 @@ def weekly_schedule():
     
     calendar_html += '</div>'
     
-    # Kalender anzeigen
+    # Kalender mit iframe rendern
     st.components.v1.html(f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
         * {{
-            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }}
         
         body {{
-            background: transparent;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
             padding: 20px;
+            min-height: 100vh;
         }}
         
         .calendar-grid {{
             display: grid;
-            grid-template-columns: 70px repeat(7, 1fr);
-            gap: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            padding: 3px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            overflow: hidden;
+            grid-template-columns: 75px repeat(7, 1fr);
+            gap: 4px;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            padding: 4px;
+            box-shadow: 
+                0 20px 60px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+                0 2px 4px rgba(0, 0, 0, 0.1);
         }}
         
         .calendar-header {{
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: linear-gradient(145deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95));
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             color: white;
-            padding: 20px 10px;
+            padding: 22px 12px;
             text-align: center;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 0.95em;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.3);
+            border-radius: 18px;
+            box-shadow: 
+                0 8px 24px rgba(102, 126, 234, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        .calendar-header::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.3), 
+                transparent);
+            transition: left 0.5s;
+        }}
+        
+        .calendar-header:hover::before {{
+            left: 100%;
         }}
         
         .calendar-header.today-header {{
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            animation: pulse 2s ease-in-out infinite;
+            background: linear-gradient(145deg, #f093fb 0%, #f5576c 100%);
+            animation: todayPulse 3s ease-in-out infinite;
+            box-shadow: 
+                0 0 30px rgba(245, 87, 108, 0.6),
+                0 8px 24px rgba(240, 147, 251, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }}
         
-        @keyframes pulse {{
-            0%, 100% {{ transform: scale(1); }}
-            50% {{ transform: scale(1.05); }}
+        @keyframes todayPulse {{
+            0%, 100% {{ 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(245, 87, 108, 0.6);
+            }}
+            50% {{ 
+                transform: scale(1.05);
+                box-shadow: 0 0 45px rgba(245, 87, 108, 0.8);
+            }}
         }}
         
         .time-label {{
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 12px 8px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 14px 10px;
             text-align: center;
-            font-size: 0.8em;
-            font-weight: 600;
+            font-size: 0.85em;
+            font-weight: 700;
             color: #667eea;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-radius: 14px;
+            box-shadow: 
+                0 4px 12px rgba(102, 126, 234, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            letter-spacing: 0.3px;
         }}
         
         .calendar-cell {{
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            min-height: 80px;
-            padding: 6px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            min-height: 90px;
+            padding: 8px;
             position: relative;
-            border-radius: 12px;
-            transition: all 0.3s ease;
+            border-radius: 14px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }}
         
         .calendar-cell:hover {{
-            background: rgba(255, 255, 255, 1);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(145deg, #ffffff, rgba(248, 250, 252, 1));
+            transform: translateY(-3px);
+            box-shadow: 
+                0 12px 32px rgba(102, 126, 234, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
         }}
         
         .calendar-cell.today {{
-            background: linear-gradient(135deg, rgba(227, 242, 253, 0.9), rgba(187, 222, 251, 0.9));
-            border: 2px solid #2196F3;
-            box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+            background: linear-gradient(145deg, rgba(227, 242, 253, 0.98), rgba(187, 222, 251, 0.98));
+            border: 2.5px solid #2196F3;
+            box-shadow: 
+                0 0 30px rgba(33, 150, 243, 0.4),
+                0 8px 24px rgba(33, 150, 243, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
         }}
         
         .event-block {{
-            padding: 10px 12px;
-            border-radius: 12px;
-            margin-bottom: 6px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            margin-bottom: 8px;
             font-size: 0.85em;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }}
         
         .event-block::before {{
@@ -924,64 +793,136 @@ def weekly_schedule():
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+            background: linear-gradient(145deg, 
+                rgba(255, 255, 255, 0.5) 0%, 
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent 100%);
             opacity: 0;
-            transition: opacity 0.3s ease;
-            border-radius: 12px;
+            transition: opacity 0.35s ease;
+            border-radius: 14px;
+        }}
+        
+        .event-block:hover {{
+            transform: translateY(-6px) scale(1.03);
+            box-shadow: 
+                0 16px 48px rgba(0, 0, 0, 0.3),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }}
         
         .event-block:hover::before {{
             opacity: 1;
         }}
         
-        .event-block:hover {{
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+        .event-block:active {{
+            transform: translateY(-4px) scale(1.01);
         }}
         
         .event-time {{
-            font-weight: 700;
-            font-size: 0.9em;
+            font-weight: 800;
+            font-size: 0.95em;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            color: rgba(0, 0, 0, 0.9);
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
         }}
         
         .event-time::before {{
             content: '⏰';
-            font-size: 1.1em;
+            font-size: 1.15em;
         }}
         
         .event-title {{
-            font-weight: 600;
-            margin-top: 4px;
-            font-size: 1em;
-            line-height: 1.3;
+            font-weight: 700;
+            margin-top: 6px;
+            font-size: 1.05em;
+            line-height: 1.4;
+            color: rgba(0, 0, 0, 0.95);
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
         }}
         
         .event-person {{
-            font-size: 0.85em;
-            opacity: 0.9;
-            margin-top: 4px;
-            font-weight: 500;
+            font-size: 0.9em;
+            opacity: 0.95;
+            margin-top: 6px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.75);
+        }}
+        
+        .delete-hint {{
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(220, 38, 38, 0.95);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: 700;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+        }}
+        
+        .event-block:hover .delete-hint {{
+            opacity: 1;
+            transform: translateY(0);
+        }}
+        
+        @media (max-width: 768px) {{
+            .calendar-grid {{
+                grid-template-columns: 60px repeat(7, 1fr);
+                gap: 2px;
+            }}
+            
+            .event-title {{
+                font-size: 0.9em;
+            }}
         }}
         </style>
     </head>
     <body>
         {calendar_html}
+        
+        <script>
+        function deleteEvent(eventId) {{
+            if (confirm('Möchten Sie diesen Termin wirklich löschen?')) {{
+                // Sende Nachricht an Streamlit
+                window.parent.postMessage({{
+                    type: 'streamlit:setComponentValue',
+                    value: {{ delete_event_id: eventId }}
+                }}, '*');
+            }}
+        }}
+        </script>
     </body>
     </html>
     """, height=2000, scrolling=True)
     
+    # Event-Löschung behandeln
+    if 'delete_event_id' in st.session_state:
+        event_id = st.session_state.delete_event_id
+        try:
+            supabase.table('schedule_events').delete().eq('id', event_id).execute()
+            st.success("✅ Termin gelöscht!")
+            del st.session_state.delete_event_id
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ Fehler beim Löschen: {str(e)}")
+    
     st.divider()
     
-    # Detail-Liste der Termine mit Glassmorphism
+    # Detail-Liste mit Premium Design
     st.markdown("""
     <h2 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                -webkit-background-clip: text;
                -webkit-text-fill-color: transparent;
-               font-weight: 700;
-               margin-bottom: 20px;">
+               font-weight: 800;
+               font-size: 1.8em;
+               margin-bottom: 25px;
+               text-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);">
         📋 Alle Termine dieser Woche
     </h2>
     """, unsafe_allow_html=True)
@@ -994,80 +935,102 @@ def weekly_schedule():
     
     if week_events:
         for event in sorted(week_events, key=lambda x: (x.get('event_date', ''), x.get('start_time', ''))):
-            col1, col2 = st.columns([5, 1])
+            col1, col2 = st.columns([6, 1])
             with col1:
                 event_date = datetime.strptime(event['event_date'], '%Y-%m-%d').date()
                 day_name = days_of_week[event_date.weekday()]
                 color = COLORS.get(event.get('category'), '#CCCCCC')
                 
                 st.markdown(f"""
-                <div class="detail-card" style="border-left: 6px solid {color};">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                        <div style="background: linear-gradient(135deg, {color}60, {color}40);
-                                    padding: 12px 20px; border-radius: 12px; 
-                                    font-weight: 700; color: white;
-                                    box-shadow: 0 4px 15px {color}30;">
+                <div style="background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+                            backdrop-filter: blur(20px);
+                            border-radius: 22px;
+                            padding: 24px;
+                            margin-bottom: 16px;
+                            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.12),
+                                        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+                            border-left: 6px solid {color};
+                            border: 1.5px solid rgba(102, 126, 234, 0.15);
+                            transition: all 0.4s ease;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap;">
+                        <div style="background: linear-gradient(145deg, {color}85, {color}60);
+                                    padding: 14px 24px; border-radius: 14px; 
+                                    font-weight: 800; color: white;
+                                    box-shadow: 0 6px 20px {color}40, inset 0 1px 0 rgba(255,255,255,0.3);
+                                    font-size: 0.95em;">
                             📅 {day_name[:2]}, {event_date.strftime('%d.%m')}
                         </div>
-                        <div style="background: linear-gradient(135deg, {color}50, {color}30);
-                                    padding: 10px 18px; border-radius: 10px;
-                                    font-weight: 600;">
+                        <div style="background: linear-gradient(145deg, {color}65, {color}40);
+                                    padding: 12px 20px; border-radius: 12px;
+                                    font-weight: 700; color: white;
+                                    box-shadow: 0 4px 16px {color}30;">
                             ⏰ {event.get('start_time', '')[:5]} - {event.get('end_time', '')[:5]}
                         </div>
                     </div>
-                    <h3 style="margin: 15px 0 10px 0; font-size: 1.3em; font-weight: 700; 
-                               background: linear-gradient(135deg, {color}, {color}CC);
+                    <h3 style="margin: 16px 0 12px 0; font-size: 1.4em; font-weight: 800; 
+                               background: linear-gradient(135deg, {color}, {color}DD);
                                -webkit-background-clip: text;
                                -webkit-text-fill-color: transparent;">
                         {event.get('title', 'N/A')}
                     </h3>
-                    <div style="display: flex; gap: 10px; margin: 10px 0;">
-                        <span style="background: rgba(102, 126, 234, 0.15); 
-                                     padding: 6px 14px; border-radius: 8px;
-                                     font-size: 0.9em; font-weight: 600;">
+                    <div style="display: flex; gap: 12px; margin: 14px 0; flex-wrap: wrap;">
+                        <span style="background: linear-gradient(145deg, rgba(102, 126, 234, 0.18), rgba(102, 126, 234, 0.12)); 
+                                     padding: 8px 16px; border-radius: 10px;
+                                     font-size: 0.95em; font-weight: 700;
+                                     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);">
                             👤 {event.get('person', 'N/A')}
                         </span>
-                        <span style="background: linear-gradient(135deg, {color}40, {color}20); 
-                                     padding: 6px 14px; border-radius: 8px;
-                                     font-size: 0.9em; font-weight: 600;">
+                        <span style="background: linear-gradient(145deg, {color}35, {color}20); 
+                                     padding: 8px 16px; border-radius: 10px;
+                                     font-size: 0.95em; font-weight: 700;
+                                     box-shadow: 0 2px 8px {color}25;">
                             📌 {event.get('category', 'N/A')}
                         </span>
                     </div>
-                    <p style="margin-top: 10px; color: #666; line-height: 1.6;">
+                    <p style="margin-top: 14px; color: #4a5568; line-height: 1.7; font-size: 0.95em;">
                         {event.get('description', '')}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
             with col2:
                 st.markdown("<br><br>", unsafe_allow_html=True)
-                if st.button("🗑️", key=f"del_event_{event['id']}", use_container_width=True):
+                if st.button("🗑️", key=f"del_event_list_{event['id']}", use_container_width=True, type="secondary"):
                     supabase.table('schedule_events').delete().eq('id', event['id']).execute()
+                    st.success("✅ Gelöscht!")
                     st.rerun()
     else:
         st.markdown("""
-        <div style="text-align: center; padding: 60px 20px;
-                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-                    border-radius: 20px; backdrop-filter: blur(10px);">
-            <h3 style="color: #667eea; font-size: 2em;">📭</h3>
-            <p style="color: #666; font-weight: 500; margin-top: 10px;">Keine Termine in dieser Woche</p>
+        <div style="text-align: center; padding: 80px 20px;
+                    background: linear-gradient(145deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+                    border-radius: 24px; backdrop-filter: blur(20px);
+                    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.12),
+                                inset 0 1px 0 rgba(255, 255, 255, 0.8);">
+            <div style="font-size: 4em; margin-bottom: 20px;">📭</div>
+            <p style="color: #667eea; font-weight: 700; font-size: 1.3em;">Keine Termine in dieser Woche</p>
+            <p style="color: #888; margin-top: 10px;">Erstelle einen neuen Termin um loszulegen!</p>
         </div>
         """, unsafe_allow_html=True)
     
-    # Legende mit modernem Design
-    with st.expander("🎨 Kategorien"):
+    # Legende
+    with st.expander("🎨 Kategorien & Legende"):
         cols = st.columns(len(COLORS))
         for i, (category, color) in enumerate(COLORS.items()):
             with cols[i]:
                 st.markdown(f"""
-                <div class="category-badge" 
-                     style="background: linear-gradient(135deg, {color}60, {color}40);
-                            border-left: 4px solid {color};
+                <div style="background: linear-gradient(145deg, {color}85, {color}60);
+                            border-left: 5px solid {color};
                             color: white;
-                            width: 100%;">
-                    <strong>{category}</strong>
+                            padding: 16px;
+                            border-radius: 14px;
+                            text-align: center;
+                            font-weight: 700;
+                            box-shadow: 0 8px 24px {color}40, inset 0 1px 0 rgba(255,255,255,0.3);
+                            transition: all 0.3s ease;
+                            cursor: pointer;">
+                    {category}
                 </div>
                 """, unsafe_allow_html=True)
-
+                
 # Hauptanwendung
 def main():
     if not st.session_state.authenticated:
