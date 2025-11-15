@@ -392,21 +392,26 @@ def shopping_list():
                 if st.button("🗑️", key=f"del_item_{item['id']}"):
                     supabase.table('shopping_items').delete().eq('id', item['id']).execute()
                     st.rerun()
-                    
-# Ferienplanung mit Premium UI
+
+ # Ferienplanung mit Premium UI
 def vacation_planning():
+    from datetime import datetime # Import an den Anfang verschoben
+    import streamlit as st
+    # Angenommen, 'supabase' ist global oder im Streamlit-Kontext verfügbar
+    # Angenommen, st.session_state.family_id und st.session_state.user sind gesetzt
+
     st.markdown("""
     <h1 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-               -webkit-background-clip: text;
-               -webkit-text-fill-color: transparent;
-               font-weight: 800;
-               font-size: 2.2em;
-               margin-bottom: 25px;">
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                font-weight: 800;
+                font-size: 2.2em;
+                margin-bottom: 25px;">
         🏖️ Ferien- und Urlaubsplanung
     </h1>
     """, unsafe_allow_html=True)
     
-    if not st.session_state.family_id:
+    if not st.session_state.get('family_id'):
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
     
@@ -424,6 +429,7 @@ def vacation_planning():
         
         if st.button("✨ Ferienzeit erstellen", use_container_width=True, type="primary") and title:
             try:
+                # Annahme: 'supabase' ist definiert
                 supabase.table('vacations').insert({
                     "family_id": st.session_state.family_id,
                     "user_id": st.session_state.user.id,
@@ -436,19 +442,25 @@ def vacation_planning():
                 }).execute()
                 st.success("✅ Ferienzeit erfolgreich eingetragen!")
                 st.rerun()
+            except NameError:
+                st.error("❌ Fehler: Supabase-Client nicht definiert.")
             except Exception as e:
-                st.error(f"❌ Fehler: {str(e)}")
+                st.error(f"❌ Fehler beim Eintragen: {str(e)}")
     
     st.divider()
     
     # Ferienzeiten laden
     try:
+        # Annahme: 'supabase' ist definiert
         response = supabase.table('vacations').select('*').eq(
             'family_id', st.session_state.family_id
         ).order('start_date', desc=False).execute()
         vacations = response.data
+    except NameError:
+        st.error("❌ Fehler: Supabase-Client nicht definiert.")
+        return
     except Exception as e:
-        st.error(f"❌ Fehler: {str(e)}")
+        st.error(f"❌ Fehler beim Laden der Daten: {str(e)}")
         return
     
     # Filter und Stats
@@ -490,11 +502,11 @@ def vacation_planning():
     if vacations:
         st.markdown("""
         <h2 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                   -webkit-background-clip: text;
-                   -webkit-text-fill-color: transparent;
-                   font-weight: 800;
-                   font-size: 1.6em;
-                   margin-bottom: 25px;">
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    font-weight: 800;
+                    font-size: 1.6em;
+                    margin-bottom: 25px;">
             📅 Timeline
         </h2>
         """, unsafe_allow_html=True)
@@ -508,7 +520,6 @@ def vacation_planning():
         
         if filtered_vacations:
             # Gruppiere nach Monat
-            from datetime import datetime
             months = {}
             for vacation in filtered_vacations:
                 start = datetime.strptime(vacation['start_date'], '%Y-%m-%d')
@@ -546,128 +557,165 @@ def vacation_planning():
                         color = TYPE_COLORS.get(vacation['type'], '#667eea')
                         icon = TYPE_ICONS.get(vacation['type'], '📅')
                         
-                        # Premium Vacation Card
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
-                                    backdrop-filter: blur(20px);
-                                    border-radius: 22px;
-                                    padding: 24px;
-                                    margin-bottom: 16px;
-                                    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.12),
-                                                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-                                    border-left: 6px solid {color};
-                                    border: 1.5px solid rgba(102, 126, 234, 0.15);
-                                    transition: all 0.4s ease;
-                                    position: relative;
-                                    overflow: hidden;">
-                            
-                            <!-- Glossy Overlay -->
-                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 50%;
-                                        background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
-                                        pointer-events: none;"></div>
-                            
-                            <!-- Header mit Icon und Typ -->
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                                <div style="display: flex; align-items: center; gap: 14px;">
-                                    <div style="background: linear-gradient(145deg, {color}85, {color}60);
-                                                width: 60px; height: 60px;
-                                                border-radius: 16px;
-                                                display: flex; align-items: center; justify-content: center;
-                                                font-size: 2em;
-                                                box-shadow: 0 8px 24px {color}40, inset 0 2px 4px rgba(255,255,255,0.3);">
-                                        {icon}
-                                    </div>
-                                    <div>
-                                        <div style="background: linear-gradient(145deg, {color}65, {color}40);
-                                                    padding: 8px 18px;
-                                                    border-radius: 12px;
-                                                    display: inline-block;
-                                                    color: white;
-                                                    font-weight: 700;
-                                                    font-size: 0.9em;
-                                                    box-shadow: 0 4px 16px {color}30;
-                                                    margin-bottom: 6px;">
-                                            {vacation['type']}
-                                        </div>
-                                        <div style="color: #888; font-size: 0.85em; font-weight: 600;">
-                                            ⏱️ {duration} Tag{"e" if duration != 1 else ""}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Title -->
-                            <h3 style="margin: 16px 0 14px 0; 
-                                       font-size: 1.5em; 
-                                       font-weight: 800;
-                                       background: linear-gradient(135deg, {color}, {color}DD);
-                                       -webkit-background-clip: text;
-                                       -webkit-text-fill-color: transparent;
-                                       line-height: 1.3;">
-                                {vacation['title']}
-                            </h3>
-                            
-                            <!-- Date Range -->
-                            <div style="background: linear-gradient(145deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08));
-                                        padding: 14px 20px;
-                                        border-radius: 14px;
-                                        margin: 16px 0;
-                                        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 12px;">
-                                <div style="font-weight: 700; color: #667eea; font-size: 1.1em;">
-                                    📅 {start.strftime('%d.%m.%Y')}
-                                </div>
-                                <div style="color: #999; font-weight: 600;">→</div>
-                                <div style="font-weight: 700; color: #764ba2; font-size: 1.1em;">
-                                    📅 {end.strftime('%d.%m.%Y')}
-                                </div>
-                            </div>
-                            
-                            <!-- Person Badge -->
-                            <div style="display: flex; gap: 10px; margin: 16px 0;">
-                                <span style="background: linear-gradient(145deg, rgba(102, 126, 234, 0.18), rgba(102, 126, 234, 0.12));
-                                             padding: 10px 18px;
-                                             border-radius: 12px;
-                                             font-size: 0.95em;
-                                             font-weight: 700;
-                                             color: #667eea;
-                                             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);">
-                                    👤 {vacation.get('person', 'N/A')}
-                                </span>
-                            </div>
-                            
-                            <!-- Notes -->
-                            {f'''<div style="background: rgba(248, 250, 252, 0.8);
-                                           padding: 14px 18px;
-                                           border-radius: 12px;
-                                           margin-top: 16px;
-                                           border-left: 3px solid {color};
-                                           color: #4a5568;
-                                           line-height: 1.7;
-                                           font-size: 0.95em;">
-                                    💬 {vacation.get('notes', '')}
-                                </div>''' if vacation.get('notes') else ''}
+                        notes_html = f'''
+                        <div style="background: rgba(248, 250, 252, 0.8);
+                                    padding: 14px 18px;
+                                    border-radius: 12px;
+                                    margin-top: 16px;
+                                    border-left: 3px solid {color};
+                                    color: #4a5568;
+                                    line-height: 1.7;
+                                    font-size: 0.95em;">
+                            💬 {vacation.get('notes', '')}
                         </div>
-                        """, unsafe_allow_html=True)
+                        ''' if vacation.get('notes') else ''
+                        
+                        # Premium Vacation Card (HTML-Komponente)
+                        st.components.v1.html(f"""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                            <style>
+                            * {{
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                                margin: 0;
+                                padding: 0;
+                                box-sizing: border-box;
+                            }}
+                            body {{
+                                background: transparent;
+                                padding: 10px;
+                            }}
+                            .vacation-card {{
+                                background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+                                backdrop-filter: blur(20px);
+                                border-radius: 22px;
+                                padding: 24px;
+                                box-shadow: 0 12px 40px rgba(102, 126, 234, 0.12),
+                                            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+                                border-left: 6px solid {color};
+                                border: 1.5px solid rgba(102, 126, 234, 0.15);
+                                transition: all 0.4s ease;
+                                position: relative;
+                                overflow: hidden;
+                            }}
+                            .vacation-card:hover {{
+                                transform: translateY(-5px);
+                                box-shadow: 0 20px 60px rgba(102, 126, 234, 0.2);
+                            }}
+                            .glossy-overlay {{
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                height: 50%;
+                                background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+                                pointer-events: none;
+                            }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="vacation-card">
+                                <div class="glossy-overlay"></div>
+                                
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div style="background: linear-gradient(145deg, {color}85, {color}60);
+                                                     width: 60px; height: 60px;
+                                                     border-radius: 16px;
+                                                     display: flex; align-items: center; justify-content: center;
+                                                     font-size: 2em;
+                                                     box-shadow: 0 8px 24px {color}40, inset 0 2px 4px rgba(255,255,255,0.3);">
+                                            {icon}
+                                        </div>
+                                        <div>
+                                            <div style="background: linear-gradient(145deg, {color}65, {color}40);
+                                                         padding: 8px 18px;
+                                                         border-radius: 12px;
+                                                         display: inline-block;
+                                                         color: white;
+                                                         font-weight: 700;
+                                                         font-size: 0.9em;
+                                                         box-shadow: 0 4px 16px {color}30;
+                                                         margin-bottom: 6px;">
+                                                {vacation['type']}
+                                            </div>
+                                            <div style="color: #888; font-size: 0.85em; font-weight: 600;">
+                                                ⏱️ {duration} Tag{"e" if duration != 1 else ""}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h3 style="margin: 16px 0 14px 0; 
+                                           font-size: 1.5em; 
+                                           font-weight: 800;
+                                           background: linear-gradient(135deg, {color}, {color}DD);
+                                           -webkit-background-clip: text;
+                                           -webkit-text-fill-color: transparent;
+                                           line-height: 1.3;">
+                                    {vacation['title']}
+                                </h3>
+                                
+                                <div style="background: linear-gradient(145deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08));
+                                             padding: 14px 20px;
+                                             border-radius: 14px;
+                                             margin: 16px 0;
+                                             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
+                                             display: flex;
+                                             align-items: center;
+                                             gap: 12px;
+                                             flex-wrap: wrap;">
+                                    <div style="font-weight: 700; color: #667eea; font-size: 1.1em;">
+                                        📅 {start.strftime('%d.%m.%Y')}
+                                    </div>
+                                    <div style="color: #999; font-weight: 600;">→</div>
+                                    <div style="font-weight: 700; color: #764ba2; font-size: 1.1em;">
+                                        📅 {end.strftime('%d.%m.%Y')}
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 10px; margin: 16px 0;">
+                                    <span style="background: linear-gradient(145deg, rgba(102, 126, 234, 0.18), rgba(102, 126, 234, 0.12));
+                                                 padding: 10px 18px;
+                                                 border-radius: 12px;
+                                                 font-size: 0.95em;
+                                                 font-weight: 700;
+                                                 color: #667eea;
+                                                 box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);">
+                                        👤 {vacation.get('person', 'N/A')}
+                                    </span>
+                                </div>
+                                
+                                {notes_html}
+                            </div>
+                        </body>
+                        </html>
+                        """, height=350)
+                        # **HINWEIS:** Der ursprüngliche redundante st.markdown Block wurde hier entfernt.
                     
                     with col2:
-                        st.markdown("<br><br>", unsafe_allow_html=True)
+                        # Leerraum für Ausrichtung
+                        st.markdown("<br><br>", unsafe_allow_html=True) 
                         if st.button("🗑️", key=f"del_vac_{vacation['id']}", use_container_width=True, type="secondary"):
                             try:
+                                # Annahme: 'supabase' ist definiert
                                 supabase.table('vacations').delete().eq('id', vacation['id']).execute()
                                 st.success("✅ Gelöscht!")
                                 st.rerun()
+                            except NameError:
+                                st.error("❌ Fehler: Supabase-Client nicht definiert.")
                             except Exception as e:
-                                st.error(f"❌ Fehler: {str(e)}")
+                                st.error(f"❌ Fehler beim Löschen: {str(e)}")
         else:
             st.markdown("""
             <div style="text-align: center; padding: 80px 20px;
                         background: linear-gradient(145deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
                         border-radius: 24px; backdrop-filter: blur(20px);
                         box-shadow: 0 8px 32px rgba(102, 126, 234, 0.12),
-                                    inset 0 1px 0 rgba(255, 255, 255, 0.8);">
+                                     inset 0 1px 0 rgba(255, 255, 255, 0.8);">
                 <div style="font-size: 4em; margin-bottom: 20px;">🔍</div>
                 <p style="color: #667eea; font-weight: 700; font-size: 1.3em;">Keine Einträge gefunden</p>
                 <p style="color: #888; margin-top: 10px;">Passe deine Filter an oder erstelle neue Ferienzeiten!</p>
@@ -679,7 +727,7 @@ def vacation_planning():
                     background: linear-gradient(145deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
                     border-radius: 24px; backdrop-filter: blur(20px);
                     box-shadow: 0 8px 32px rgba(102, 126, 234, 0.12),
-                                inset 0 1px 0 rgba(255, 255, 255, 0.8);">
+                                 inset 0 1px 0 rgba(255, 255, 255, 0.8);">
             <div style="font-size: 5em; margin-bottom: 20px;">🏖️</div>
             <h2 style="color: #667eea; font-weight: 800; font-size: 1.8em; margin-bottom: 10px;">
                 Noch keine Ferienzeiten geplant
@@ -714,6 +762,10 @@ def vacation_planning():
                     {vac_type}
                 </div>
                 """, unsafe_allow_html=True)
+
+# Um die Funktion auszuführen, müssten Sie sie in Ihrer Streamlit-Anwendung aufrufen
+# vacation_planning()
+
 def weekly_schedule():
     st.title("📆 Wochenplan")
     
