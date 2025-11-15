@@ -1,5 +1,0 @@
-streamlit
-supabase
-gotrue
-realtime
-streamlit-antd-dnd
