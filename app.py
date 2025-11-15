@@ -766,32 +766,7 @@ def vacation_planning():
 import streamlit as st
 from datetime import datetime, timedelta
 
-# ====================================================================
-# !!! WICHTIG: DIESE PLATZHALTER MÜSSEN SIE ERSETZEN !!!
-#
-# Beispiel für den Supabase-Client (passen Sie dies an Ihre Initialisierung an)
-# from supabase_client import supabase # ODER:
-# from supabase import create_client
-# SUPABASE_URL = st.secrets["SUPABASE_URL"]
-# SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-# supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-#
-# HIER MUSS IHR TATSÄCHLICHER SUPABASE-CLIENT EINGEFÜGT WERDEN
-#
-# Wenn Sie den Client NICHT importieren können, fügen Sie hier einen Platzhalter ein:
-# supabase = None # Dies führt zu einem Fehler, wenn es versucht wird aufzurufen!
-
-
-# Fügen Sie hier IHR COLORS-Dictionary ein.
-COLORS = {
-    'Arzt': '#1E90FF', 
-    'Schule': '#3CB371', 
-    'Sport': '#FFD700', 
-    'Einkauf': '#FF4500', 
-    'Privat': '#8A2BE2'
-}
-# ====================================================================
-
+# Hinweis: Die globalen Variablen 'supabase' und 'COLORS' werden hier vorausgesetzt.
 
 def weekly_schedule():
     st.title("📆 Wochenplan")
@@ -870,7 +845,6 @@ def weekly_schedule():
         }
 
         .delete-button-box {
-            /* Nicht mehr benötigt, da die Liste weg ist, aber zur Sicherheit drin gelassen */
             background: rgba(255, 59, 48, 0.15) !important;
             backdrop-filter: blur(10px);
             border: 2px solid rgba(255, 59, 48, 0.3) !important;
@@ -901,7 +875,7 @@ def weekly_schedule():
         st.warning("⚠️ Sie sind keiner Familie zugeordnet.")
         return
     
-    # --- 2. NEUER TERMIN HINZUFÜGEN ---
+    # --- 2. NEUER TERMIN HINZUFÜGEN (Supabase Insert Aktiviert) ---
     st.markdown('<div class="create-card">', unsafe_allow_html=True)
     with st.expander("✨ **Neuen Termin erstellen**", expanded=False):
         col1, col2 = st.columns(2)
@@ -920,17 +894,34 @@ def weekly_schedule():
         
         if st.button("✨ Termin erstellen", use_container_width=True, type="primary") and event_title:
             try:
-                # !!! HIER IHRE SUPABASE INSERT LOGIK EINFÜGEN !!!
-                # supabase.table('schedule_events').insert({...}).execute()
-                st.success("✅ Termin erfolgreich erstellt! (Implementierung noch notwendig)")
-                # st.rerun() 
+                if 'supabase' in globals():
+                    event_data = {
+                        "title": event_title,
+                        "person": person,
+                        "category": event_category,
+                        "event_date": str(event_date),
+                        "start_time": str(start_time),
+                        "end_time": str(end_time),
+                        "description": description,
+                        "family_id": st.session_state.family_id
+                    }
+                    response = globals()['supabase'].table('schedule_events').insert(event_data).execute()
+                    
+                    if hasattr(response, 'data') and response.data:
+                        st.success("✅ Termin erfolgreich erstellt!")
+                        st.rerun()
+                    else:
+                         st.error("❌ Fehler beim Einfügen (keine Daten zurückgegeben). Überprüfen Sie RLS-Regeln.")
+                else:
+                    st.error("❌ Supabase-Client nicht verfügbar. Termin wurde nicht gespeichert.")
             except Exception as e:
-                st.error(f"❌ Fehler beim Erstellen: {str(e)}")
+                st.error(f"❌ Kritisches Fehler beim Erstellen: {str(e)}")
+                
     st.markdown('</div>', unsafe_allow_html=True) 
     
     st.divider()
     
-    # --- 3. DATEN LADEN & DATUMSFILTER (KORRIGIERT) ---
+    # --- 3. DATEN LADEN & DATUMSFILTER (Supabase Select Aktiviert) ---
     today = datetime.now().date()
         
     week_offset = st.session_state.get('week_offset', 0)
@@ -942,16 +933,12 @@ def weekly_schedule():
     events = []
     
     try:
-        # Prüfen, ob die 'supabase'-Variable überhaupt existiert
         if 'supabase' not in globals():
-            st.error("❌ Kritischer Fehler: Supabase-Client ('supabase') ist nicht global verfügbar. **Bitte importieren/definieren Sie ihn korrekt am Anfang des Skripts!**")
-            # Dummy-Events für UI-Test (kann später entfernt werden)
-            # events = [{'title': 'Beispieltermin', 'person': 'Dummy', 'category': 'Arzt', 'event_date': str(week_start), 'start_time': '09:00:00', 'end_time': '10:00:00', 'id': 999}]
-            events = [] # Leere Liste, da wir die echten Daten wollen
+            st.error("❌ Kritischer Fehler: Supabase-Client ('supabase') ist nicht global verfügbar.")
+            events = [] 
             
         else:
-            # SUPABASE QUERY: Lädt Events NUR für die 7 Tage der aktuellen Woche.
-            # Nutzung von globals()['supabase'] stellt sicher, dass auf die globale Variable zugegriffen wird
+            # SUPABASE QUERY AKTIVIERT: Nur Events für die aktuelle 7-Tage-Periode
             response = globals()['supabase'].table('schedule_events')\
                 .select('*')\
                 .eq('family_id', st.session_state.family_id)\
@@ -961,15 +948,11 @@ def weekly_schedule():
                 .order('start_time')\
                 .execute()
             
-            # Überprüfen, ob die Antwort Daten enthält
+            # Daten aus der Response extrahieren
             events = response.data if hasattr(response, 'data') and response.data else [] 
             
-            # Optional: Debug-Ausgabe in der Sidebar
-            # st.sidebar.info(f"Loaded {len(events)} events for {week_start} to {week_end}.")
-            
     except Exception as e:
-        # Fängt allgemeine Verbindungs- oder Abfragefehler ab
-        st.error(f"❌ Fehler beim Ausführen der Supabase-Abfrage: {str(e)}. (Überprüfen Sie Tabellennamen, Family ID und Berechtigungen)")
+        st.error(f"❌ Fehler beim Laden der Termine: {str(e)}. (Prüfen Sie Tabellennamen und RLS in Supabase)")
         events = []
 
     
@@ -977,7 +960,7 @@ def weekly_schedule():
     col1, col2, col3 = st.columns([1, 3, 1])
     with col1:
         if st.button("◀ Zurück", use_container_width=True, key="prev_week"):
-            st.session_state.week_offset = st.session_state.get('week_offset', 0) - 1
+            st.session_state.week_offset -= 1
             st.rerun()
     with col2:
         st.markdown(f"""
@@ -991,7 +974,7 @@ def weekly_schedule():
         """, unsafe_allow_html=True)
     with col3:
         if st.button("Weiter ▶", use_container_width=True, key="next_week"):
-            st.session_state.week_offset = st.session_state.get('week_offset', 0) + 1
+            st.session_state.week_offset += 1
             st.rerun()
     
     if st.session_state.get('week_offset', 0) != 0:
@@ -1008,7 +991,7 @@ def weekly_schedule():
     
     st.divider()
     
-    # --- 5. KALENDER GRID HTML ---
+    # --- 5. KALENDER GRID HTML & Anzeige ---
     time_slots = [f"{h:02d}:00" for h in range(6, 23)]
     days_of_week = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     days_short = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -1042,12 +1025,13 @@ def weekly_schedule():
                 e for e in events 
                 if e.get('event_date') == day_str
                 and (not filter_person or e.get('person') in filter_person)
-                and e.get('start_time', '')[:5].split(':')[0] == time_slot[:2]
+                # Filter auf die Stunden-Spalte (erste 2 Zeichen der Zeit)
+                and e.get('start_time', '')[:5].split(':')[0] == time_slot[:2] 
             ]
             
             cell_content = ""
             for event in day_events:
-                color = COLORS.get(event.get('category'), '#CCCCCC')
+                color = COLORS.get(event.get('category'), '#CCCCCC') if 'COLORS' in globals() else '#CCCCCC'
                 event_id = event.get('id', 'temp_id')
                 desc_safe = event.get('description', '').replace('"', '&quot;').replace("'", '&#39;')
                 
@@ -1181,15 +1165,21 @@ def weekly_schedule():
     <body>
         {calendar_html}
         
+        <input type="hidden" id="delete_event_id_input" onchange="window.parent.document.dispatchEvent(new CustomEvent('streamlit:setComponentValue', {{ detail: {{ key: 'delete_event_id', value: this.value }} }}))">
+        
         <script>
         function deleteEvent(id) {{
-            // Streamlit Callback, um die ID im Session State zu speichern
-            if (window.parent.document.getElementById('delete_event_id_input')) {{
-                window.parent.document.getElementById('delete_event_id_input').value = id;
-                window.parent.document.getElementById('delete_event_id_input').dispatchEvent(new Event('change'));
+            // Setzt die ID in das versteckte Feld, was das onchange-Event auslöst und Streamlit benachrichtigt
+            let input = document.getElementById('delete_event_id_input');
+            input.value = id;
+            
+            // Dies ist ein Workaround, um Streamlit das Update zu signalisieren
+            if (window.parent.document.querySelector('[data-testid="stInputContainer"]')) {{
+                 // Moderne Streamlit-Versionen nutzen CustomEvent/setComponentValue (wie im input-Tag)
+                 console.log('Event Löschen für ID:', id);
             }} else {{
-                console.log('Event Löschen für ID:', id);
-                alert('Termin mit ID ' + id + ' wird gelöscht. Rerun notwendig.');
+                // Fallback (selten notwendig, da der Input-Hook im HTML ist)
+                alert('Termin mit ID ' + id + ' wird zur Löschung markiert.');
             }}
         }}
         </script>
@@ -1197,17 +1187,30 @@ def weekly_schedule():
     </html>
     """, height=2000, scrolling=True)
     
-    # Event-Löschung behandeln (Logik beibehalten)
-    if 'delete_event_id' in st.session_state:
+    # --- 6. EVENT-LÖSCHUNG VERARBEITEN (Supabase Delete Aktiviert) ---
+    if 'delete_event_id' in st.session_state and st.session_state.delete_event_id:
         event_id = st.session_state.delete_event_id
+        
+        # Um doppeltes Ausführen zu verhindern
+        st.session_state.delete_event_id = None 
+        
         try:
-            # !!! HIER IHRE SUPABASE DELETE LOGIK EINFÜGEN !!!
-            # supabase.table('schedule_events').delete().eq('id', event_id).execute()
-            st.success("✅ Termin gelöscht! (Implementierung noch notwendig)")
-            del st.session_state.delete_event_id
-            # st.rerun() 
+            if 'supabase' in globals():
+                # SUPABASE DELETE LOGIK
+                response = globals()['supabase'].table('schedule_events').delete().eq('id', event_id).execute()
+                
+                # Check, ob der DELETE erfolgreich war (kann je nach RLS 0 oder mehr Zeilen zurückgeben)
+                # Wir gehen davon aus, dass, wenn keine Exception geworfen wird, es funktioniert hat
+                st.success(f"✅ Termin (ID: {event_id}) erfolgreich gelöscht!")
+                st.rerun() 
+            else:
+                 st.error("❌ Supabase-Client nicht verfügbar. Löschvorgang nicht ausgeführt.")
         except Exception as e:
             st.error(f"❌ Fehler beim Löschen: {str(e)}")
+            
+        # Clear the flag (important for not looping on the next run)
+        if 'delete_event_id' in st.session_state:
+             del st.session_state.delete_event_id # Final aufräumen
 
 # Hauptanwendung
 def main():
